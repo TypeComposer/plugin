@@ -1,0 +1,69 @@
+{
+  "name": "typecomposer-plugin",
+  "type": "module",
+  "version": "1.0.7",
+  "packageManager": "pnpm@10.4.1",
+  "description": "TypeComposer plugin for Vite",
+  "author": "zico15 <zequielzico@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/zico15/typecomposer-plugin#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zico15/typecomposer-plugin.git"
+  },
+  "bugs": "https://github.com/zico15/typecomposer-plugin/issues",
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "framework"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./client": {
+      "types": "./client.d.ts"
+    },
+    "./*": "./*"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "pwa",
+    "public"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "build": "esno scripts/build.ts",
+    "pub": "npm run build && npm publish --access public --tag latest"
+  },
+  "peerDependencies": {
+    "ts-morph": "^27.0.0",
+    "vite": "^7.1.5"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/node": "^24.3.3",
+    "adm-zip": "^0.5.16",
+    "htmlparser2": "^10.0.0",
+    "ts-morph": "^27.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.7.3",
+    "vite": "^7.1.5"
+  },
+  "dependencies": {
+    "es-module-lexer": "^1.7.0"
+  }
+}
