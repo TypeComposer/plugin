@@ -48,6 +48,7 @@ export interface TypeComposerOptions {
   // pwa?: TypeComposerPWA.PWDOptions;
   debugger?: boolean;
   library?: boolean;
+  router?: "auto" | "manual";
   translation?: {
     defaultLanguage: Required<string>;
     computed?: boolean;

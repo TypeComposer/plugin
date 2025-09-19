@@ -91,7 +91,7 @@ export class ProjectBuild extends ProjectUtils {
     if (fileInfo.path == this.mainPath) {
       const imports = ["import 'virtual:translation';"];
       if (this.options.styles !== false) imports.push(`import "typecomposer/styles/style.scss"`);
-      if (this.routerPath) imports.push(`import "${this.routerPath}"`);
+      if (this.options.router !== "manual" && this.routerPath) imports.push(`import "${this.routerPath}"`);
       return `${imports.join("\n")}\n${fileInfo.sourceFile.getFullText()}`;
     }
     return fileInfo.sourceFile.getFullText();
