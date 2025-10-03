@@ -12,8 +12,6 @@ interface IExtendsInfo {
 }
 
 export class InfoComponent {
-  static consoleLog = console.log;
-
   private static changeExtensionToJs(filePath: string): string {
     return filePath.replace(/\.d\.ts$/, ".js");
   }
@@ -35,7 +33,14 @@ export class InfoComponent {
             const args = node.getArguments().map((arg) => arg.getText());
             if (args.length >= 2 && args[1] === data.extendsName) {
               const info = {
-                ...(args.length > 2 ? JSON.parse(args[2].replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":').replace(/'/g, '"')) : {}),
+                ...(args.length > 2
+                  ? JSON.parse(
+                      args[2]
+                        .replace(/,\s*}/g, "}")
+                        .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+                        .replace(/'/g, '"')
+                    )
+                  : {}),
                 tag: args[0].replace(/^['"]|['"]$/g, ""),
               };
               componentInfo.info.set(data.extendsName, info);
@@ -109,6 +114,5 @@ export class InfoComponent {
     fileInfo.classes = classes.map((classDeclaration: ClassDeclaration) => {
       return this.getClassInfo(classDeclaration, project);
     });
-    console.log = this.consoleLog;
   }
 }
