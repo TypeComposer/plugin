@@ -1,4 +1,4 @@
-import type { Plugin } from "vite";
+import { Plugin } from "vite";
 import { ProjectBuild } from "./plugin/transpilator/ProjectBuild";
 import { Debuger } from "./plugin/Debug/Log";
 import { TypeComposer } from "./plugin/transpilator/typecomposer";
@@ -44,7 +44,7 @@ type ElementStyle =
   | "h5"
   | "h6";
 
-export interface TypeComposerOptions {
+export interface Options {
   // pwa?: TypeComposerPWA.PWDOptions;
   debugger?: boolean;
   library?: boolean;
@@ -81,12 +81,18 @@ export interface TypeComposerOptions {
     | false;
 }
 
-export default function typeComposer(options: TypeComposerOptions = { assetsDir: "src/assets", otimize: true, styles: { include: "all" } }): Plugin<any>[] {
+/**
+ * TypeComposer Vite Plugin
+ * @param options Options for configuring the plugin
+ * @default { assetsDir: 'src/assets', otimize: true, styles: { include: 'all' } }
+ * @returns PluginOption
+ */
+export default function typeComposer(options: Options = { assetsDir: "src/assets", otimize: true, styles: { include: "all" } }): Plugin[] {
   // const { pwa } = options;
   Debuger.isDebug = options.debugger || false;
   Debuger.warn("Activate TypeComposer debugger");
   const project = new ProjectBuild(options);
-  const plugins: Plugin<any>[] = [
+  const plugins: any[] = [
     TypeComposer.plugin(project),
     //TypeComposerSVG.plugin(),
     TypeComposerBuildPre.plugin(project),
@@ -100,5 +106,5 @@ export default function typeComposer(options: TypeComposerOptions = { assetsDir:
   if (options.otimize) {
     Debuger.log("activate otimize build");
   }
-  return plugins;
+  return plugins; // Retorna array como PluginOption único
 }

@@ -1,25 +1,10 @@
-import {
-  ClassDeclaration,
-  JsxAttribute,
-  JsxOpeningElement,
-  JsxSelfClosingElement,
-  SyntaxKind,
-  Node,
-  JsxExpression,
-  StructureKind,
-  ImportDeclarationStructure,
-  OptionalKind,
-  SourceFile,
-  ts,
-  CallExpression,
-  Expression,
-} from "ts-morph";
-import { existsSync, readFileSync, utimesSync } from "node:fs";
-import { basename, dirname, extname, join } from "node:path";
-import { FileInfo, ChangeEvent } from "../Interfaces";
-import { ProjectBuild } from "../ProjectBuild";
-import { Debuger } from "../../Debug/Log";
-import { RefBuild } from "./RefBuild";
+import { ClassDeclaration, JsxAttribute, JsxOpeningElement, JsxSelfClosingElement, SyntaxKind, Node, JsxExpression, SourceFile, ts, CallExpression, Expression } from "ts-morph";
+import { utimesSync } from "node:fs";
+import { basename, dirname, extname } from "node:path";
+import { FileInfo, ChangeEvent } from "../../Interfaces";
+import { ProjectBuild } from "../../ProjectBuild";
+import { Debuger } from "../../../Debug/Log";
+import { RefBuild } from "../RefBuild";
 import { TransformStream } from "./transform";
 
 export interface RefComponentOptions {
@@ -31,27 +16,6 @@ type TransformationsType = { node: JsxExpression | Expression<ts.Expression>; ne
 export class TemplateBuild {
   static files: Map<string, { path: string; className: string }> = new Map();
   public static readonly EXTENSION = ".template";
-
-  private static normalizeCode(code: string) {
-    let newCode = "";
-    const imports: string[] = [];
-    let lines = 0;
-    let is_fragment = false;
-    for (const line of code.split("\n")) {
-      const newLine = line.trim();
-      if (is_fragment == false && newLine.startsWith("import")) {
-        imports.push(newLine);
-        lines++;
-      } else if (is_fragment == false && newLine.length == 0) lines++;
-      else {
-        if ((is_fragment == false && newLine.startsWith("<fragment>")) || newLine.startsWith("<>")) {
-          is_fragment = true;
-        }
-        newCode += line + "\n";
-      }
-    }
-    return { newCode: newCode, lines, imports };
-  }
 
   private static async collectReferencesTopLevel(node: Node): Promise<string[]> {
     const references: string[] = [];
@@ -340,27 +304,7 @@ export class TemplateBuild {
     }
   }
 
-  public static async analyze(fileInfo: FileInfo) {
-    const types = [TemplateBuild.EXTENSION];
-    const imports: string[] = [];
-    for await (const classInfo of fileInfo.classes) {
-      const componentName = classInfo.className;
-      if (!componentName || !fileInfo.path) continue;
-      for await (const type of types) {
-        if (existsSync(join(fileInfo.pathFolder, componentName + type))) {
-          fileInfo.sourceFile.addImportDeclaration({
-            moduleSpecifier: `./${componentName}${type}`,
-            namedImports: [],
-            defaultImport: undefined,
-          });
-          this.files.set(join(fileInfo.pathFolder, componentName + type), { path: fileInfo.path, className: componentName });
-          imports.push(...this.injectTemplate(classInfo.classDeclaration, join(fileInfo.pathFolder, componentName + type)));
-        }
-      }
-    }
-    for await (const importLine of this.convertImports(imports)) {
-      fileInfo.sourceFile.addImportDeclaration(importLine);
-    }
+  public static async analyze(fileInfo: FileInfo, project: ProjectBuild) {
     for await (const node of fileInfo.sourceFile.getDescendants()) {
       if (node.getKind() === SyntaxKind.JsxSelfClosingElement || node.getKind() === SyntaxKind.JsxOpeningElement) {
         const element = node as JsxSelfClosingElement | JsxOpeningElement;
@@ -381,11 +325,11 @@ export class TemplateBuild {
     await RefBuild.transformCallExpressionComputedTemplate(fileInfo);
     await this.addBindThis(fileInfo);
     for await (const classInfo of fileInfo.classes) {
-      this.convertTemplate(classInfo.classDeclaration);
+      this.convertTemplate(classInfo.classDeclaration, project);
     }
   }
 
-  private static convertTemplate(classDeclaration: ClassDeclaration) {
+  private static convertTemplate(classDeclaration: ClassDeclaration, project: ProjectBuild) {
     const templateMethod = classDeclaration.getMethod("template");
     if (templateMethod) {
       const html = templateMethod.getBodyText()?.trim() || "";
@@ -398,8 +342,15 @@ export class TemplateBuild {
         statements: [],
         parameters: [],
       });
-      const newCode = TransformStream.convertTsxToTypeComposer(html);
-      templateCallback?.insertStatements(0, `return (${newCode});`);
+      if (!project.enabledTemplate) {
+        if (project.jsx === ts.JsxEmit.ReactJSX || project.jsx === ts.JsxEmit.ReactJSXDev) {
+          const newCode = html.startsWith("return") ? html.replace(/^return\s*/, "").replace(/;$/, "") : html;
+          templateCallback?.insertStatements(0, `createRoot(this).render(${newCode}); return null;`);
+        }
+      } else {
+        const newCode = TransformStream.convertTsxToTypeComposer(html);
+        templateCallback?.insertStatements(0, newCode ? `return (${newCode});` : html);
+      }
     }
   }
 
@@ -511,58 +462,6 @@ export class TemplateBuild {
         node.replaceWithText(replacement);
       }
     });
-  }
-
-  static convertImports(imports: string[]): OptionalKind<ImportDeclarationStructure>[] {
-    const importMap: Record<string, { namedImports: Set<string>; defaultImport?: string }> = {};
-
-    imports.forEach((importString) => {
-      const match = importString.match(/import\s+(?:(\w+)\s*,\s*)?(?:{([^}]+)})?\s*from\s*["']([^"']+)["'];?/);
-
-      if (!match) return;
-
-      const [, defaultImport, namedImports, moduleSpecifier] = match;
-
-      if (!importMap[moduleSpecifier]) {
-        importMap[moduleSpecifier] = { namedImports: new Set() };
-      }
-
-      if (defaultImport) {
-        importMap[moduleSpecifier].defaultImport = defaultImport;
-      }
-      if (namedImports) {
-        namedImports
-          .split(",")
-          .map((name) => name.trim())
-          .forEach((name) => importMap[moduleSpecifier].namedImports.add(name));
-      }
-    });
-
-    return Object.entries(importMap).map(([moduleSpecifier, { namedImports, defaultImport }]) => ({
-      kind: StructureKind.ImportDeclaration,
-      moduleSpecifier,
-      namedImports: Array.from(namedImports),
-      defaultImport,
-    }));
-  }
-
-  private static injectTemplate(classDeclaration: ClassDeclaration, templateUrl: string) {
-    const templateMethod = classDeclaration.getMethod("template");
-    if (templateMethod) {
-      Debuger.error("\x1b[31m🔴 Template method already exists, removing itx\x1b[0m");
-      templateMethod.remove();
-    }
-    const templateCallback = classDeclaration.addMethod({
-      name: "template",
-      isAsync: false,
-      isStatic: false,
-      statements: [],
-      parameters: [],
-    });
-    const html = readFileSync(templateUrl, "utf-8")?.trim();
-    const { newCode, imports } = this.normalizeCode(html);
-    html && templateCallback?.insertStatements(0, `return (${newCode});`);
-    return imports;
   }
 
   public static async watchChange(id: string, change: { event: ChangeEvent }, project: ProjectBuild) {

@@ -1,7 +1,7 @@
 {
   "name": "typecomposer-plugin",
   "type": "module",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "packageManager": "pnpm@10.4.1",
   "description": "TypeComposer plugin for Vite",
   "author": "zico15 <zequielzico@gmail.com>",
@@ -51,7 +51,7 @@
   },
   "peerDependencies": {
     "ts-morph": "^27.0.0",
-    "vite": "^7.1.5"
+    "vite": "^7.1.9"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
@@ -59,8 +59,7 @@
     "adm-zip": "^0.5.16",
     "htmlparser2": "^10.0.0",
     "tsup": "^8.5.0",
-    "typescript": "^5.7.3",
-    "vite": "^7.1.5"
+    "typescript": "^5.7.3"
   },
   "dependencies": {
     "ts-morph": "^27.0.0",

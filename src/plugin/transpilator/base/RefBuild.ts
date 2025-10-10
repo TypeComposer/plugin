@@ -3,7 +3,7 @@ import { CallExpression, Identifier, PropertyAccessExpression, SourceFile, Synta
 import { ProjectBuild } from "../ProjectBuild";
 import { Type } from "ts-morph";
 import { resolve } from "node:path";
-import { TemplateBuild } from "./TemplateBuild";
+import { TemplateBuild } from "./template/TemplateBuild";
 import { Debuger } from "../../Debug/Log";
 
 export namespace RefBuild {

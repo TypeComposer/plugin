@@ -6,17 +6,18 @@ import { FileInfo, ClassInfo, ChangeEvent } from "./Interfaces";
 import path from "node:path";
 import { Router } from "./base/RouterController";
 import { Theme } from "./base/ThemeController";
-import { TypeComposerOptions } from "../..";
+import { Options } from "../..";
 import * as os from "os";
 import { ProjectUtils } from "./ProjectUtils";
-import { TemplateBuild } from "./base/TemplateBuild";
+import { TemplateBuild } from "./base/template/TemplateBuild";
 import { ComponentBuild } from "./base/ComponentBuild";
 import { RefBuild } from "./base/RefBuild";
 import { SvgBuild } from "./base/SvgBuild";
 import { InfoComponent } from "./base/InfoComponent";
+import { TemplateLoad } from "./base/template/TemplateLoad";
 
 export class ProjectBuild extends ProjectUtils {
-  constructor(public options: TypeComposerOptions) {
+  constructor(public options: Options) {
     super(options);
   }
 
@@ -70,10 +71,11 @@ export class ProjectBuild extends ProjectUtils {
       await RefBuild.analyze(fileInfo, this);
       return await this.build(fileInfo);
     }
+    await TemplateLoad.analyze(fileInfo);
+    await TemplateBuild.analyze(fileInfo, this);
     await RegisterBuild.analyze(fileInfo, this);
     await StyleBuild.analyze(fileInfo);
     await RefBuild.analyze(fileInfo, this);
-    await TemplateBuild.analyze(fileInfo);
     await ComponentBuild.analyze(fileInfo);
     await Router.analyze(fileInfo, this);
     return await this.build(fileInfo);
