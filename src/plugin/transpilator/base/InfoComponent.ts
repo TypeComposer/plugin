@@ -61,8 +61,7 @@ export class InfoComponent {
     const extendsSymbol = extendsType?.getType().getSymbol();
     const extendsDecl = extendsSymbol?.getDeclarations()?.[0];
     const extendsSourceFile = extendsDecl?.getSourceFile();
-    const sourceFile =
-      (extendsSourceFile?.getFilePath().endsWith("d.ts") ? project.getSourceFile(this.changeExtensionToJs(extendsSourceFile?.getFilePath())) : extendsSourceFile) || extendsSourceFile;
+    const sourceFile = (extendsSourceFile?.getFilePath().endsWith("d.ts") ? project.getSourceFile(this.changeExtensionToJs(extendsSourceFile?.getFilePath())) : extendsSourceFile) || extendsSourceFile;
     const data: IExtendsInfo = {
       extendsName: extendsSymbol?.getName() || "",
       path: sourceFile?.getFilePath() || "",
@@ -81,7 +80,11 @@ export class InfoComponent {
   private static getClassInfo(classDeclaration: ClassDeclaration, project: ProjectBuild): ClassInfo {
     const className = classDeclaration.getName() ?? "UnnamedClass";
     const data = this.getExtendsInfo(classDeclaration, project);
-    const decorators = classDeclaration.getDecorators()?.map((decorator: Decorator) => decorator.getText()) || [];
+    const decorators =
+      classDeclaration
+        .getDecorators()
+        ?.filter((decorator: Decorator) => project.isDecoratorTypeComposer(decorator))
+        .map((decorator: Decorator) => decorator.getText()) || [];
     const classInfo: ClassInfo = {
       className,
       extends: data.extendsName,
@@ -91,6 +94,7 @@ export class InfoComponent {
       registerOptions: data.options as any,
       constructorDatas: [],
       styles: [],
+      isTemplateLoaded: false,
       insertProperties: [],
       isExported: classDeclaration.isExported(),
       beforeClassDatas: [],

@@ -15,6 +15,7 @@ import { RefBuild } from "./base/RefBuild";
 import { SvgBuild } from "./base/SvgBuild";
 import { InfoComponent } from "./base/InfoComponent";
 import { TemplateLoad } from "./base/template/TemplateLoad";
+import { InjectBuild } from "./base/InjectBuild";
 
 export class ProjectBuild extends ProjectUtils {
   constructor(public options: Options) {
@@ -69,8 +70,10 @@ export class ProjectBuild extends ProjectUtils {
     await InfoComponent.analyze(fileInfo, this);
     if (fileInfo.classes.find((classInfo: ClassInfo) => classInfo.isComponent) == undefined) {
       await RefBuild.analyze(fileInfo, this);
+      await InjectBuild.analyze(fileInfo, this);
       return await this.build(fileInfo);
     }
+    await InjectBuild.analyze(fileInfo, this);
     await TemplateLoad.analyze(fileInfo);
     await TemplateBuild.analyze(fileInfo, this);
     await RegisterBuild.analyze(fileInfo, this);
@@ -89,14 +92,21 @@ export class ProjectBuild extends ProjectUtils {
     return classCode;
   }
 
+  private transformMetaHot(code: string): string {
+    if (this.options.metaHot !== true) return code;
+    if (code.includes("if (import.meta.hot) import.meta.hot.accept();")) return code;
+    const imports = `if (import.meta.hot) import.meta.hot.accept();\n`;
+    return imports + code;
+  }
+
   private async build(fileInfo: FileInfo) {
     if (fileInfo.path == this.mainPath) {
       const imports = ["import 'virtual:translation';"];
       if (this.options.styles !== false) imports.push(`import "typecomposer/styles/style.scss"`);
       if (this.options.router !== "manual" && this.routerPath) imports.push(`import "${this.routerPath}"`);
-      return `${imports.join("\n")}\n${fileInfo.sourceFile.getFullText()}`;
+      return this.transformMetaHot(`${imports.join("\n")}\n${fileInfo.sourceFile.getFullText()}`);
     }
-    return fileInfo.sourceFile.getFullText();
+    return this.transformMetaHot(fileInfo.sourceFile.getFullText());
   }
 
   public async transform(code: string, id: string, tpc: any): Promise<string> {

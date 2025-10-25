@@ -73,6 +73,14 @@ export interface Options {
    * @default false
    */
   ssr?: boolean;
+  /**
+   * Enable HMR (Hot Module Replacement)
+   * @default false
+   */
+  metaHot?: boolean;
+  /**
+   * Styles configuration
+   */
   styles?:
     | {
         exclude?: ElementStyle[] | "all";

@@ -1,4 +1,4 @@
-import { ClassDeclaration, Project, ScriptKind, SourceFile, Symbol, ts } from "ts-morph";
+import { ClassDeclaration, Decorator, Project, ScriptKind, SourceFile, Symbol, SyntaxKind, ts, Node } from "ts-morph";
 import path, { join } from "node:path";
 import { FileInfo, IComponentInfo, ImportInfo } from "./Interfaces";
 import { Options } from "../..";
@@ -258,5 +258,41 @@ export class ProjectUtils extends Project {
         })),
       });
     }
+  }
+
+  /**
+   * Attempt to resolve the import/module/file where a decorator identifier
+   * was declared or imported from.
+   *
+   * Returns either the import module specifier (e.g. 'my-lib') or the
+   * absolute path to the source file that declares the decorator.
+   */
+  isDecoratorTypeComposer(decorator: Decorator): boolean {
+    try {
+      const expr = decorator.getExpression();
+      // If the decorator is called like @Dec(...) the expression is a CallExpression
+      const ident = Node.isCallExpression(expr) ? expr.getExpression() : expr;
+
+      // Only identifiers and property access expressions can have symbols we care about
+      if (!Node.isIdentifier(ident) && !Node.isPropertyAccessExpression(ident)) return false;
+
+      const sym = ident.getSymbol();
+      if (!sym) return false;
+
+      const decls = sym.getDeclarations();
+      for (const d of decls) {
+        const importDecl = d.getFirstAncestorByKind(SyntaxKind.ImportDeclaration);
+        if (importDecl) {
+          // getModuleSpecifierValue returns the raw module string without quotes
+          return importDecl.getModuleSpecifier().getLiteralText() === "typecomposer";
+        }
+      }
+
+      // Fallback: return the file path where the symbol is declared
+      if (decls.length > 0) return decls[0].getSourceFile().getFilePath().includes("typecomposer");
+    } catch (e) {
+      // ignore resolution errors
+    }
+    return false;
   }
 }
