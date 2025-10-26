@@ -305,17 +305,24 @@ export class TemplateBuild {
   }
 
   public static async analyze(fileInfo: FileInfo, project: ProjectBuild) {
-    for await (const node of fileInfo.sourceFile.getDescendants()) {
-      if (node.getKind() === SyntaxKind.JsxSelfClosingElement || node.getKind() === SyntaxKind.JsxOpeningElement) {
-        const element = node as JsxSelfClosingElement | JsxOpeningElement;
-        const refAttr = element.getAttribute("ref");
-        if (refAttr && refAttr.getKind() === SyntaxKind.JsxAttribute) {
-          const jsxAttr = refAttr as JsxAttribute;
-          const refValue = jsxAttr.getInitializer()?.getText();
-          if (refValue) {
-            const newRefValue = `{(e) => (${refValue.slice(1, -1)} = e)}`;
+    const selfClosingElements = fileInfo.sourceFile.getDescendantsOfKind(SyntaxKind.JsxSelfClosingElement) as JsxSelfClosingElement[];
+    const openingElements = fileInfo.sourceFile.getDescendantsOfKind(SyntaxKind.JsxOpeningElement) as JsxOpeningElement[];
+    const jsxElements = [...selfClosingElements, ...openingElements];
+
+    for (const element of jsxElements) {
+      const wasForgotten = (element as any).wasForgotten ? (element as any).wasForgotten() : false;
+      if (wasForgotten) continue;
+      const refAttr = element.getAttribute("ref");
+      if (refAttr && refAttr.getKind() === SyntaxKind.JsxAttribute) {
+        const jsxAttr = refAttr as JsxAttribute;
+        const refValue = jsxAttr.getInitializer()?.getText();
+        if (refValue) {
+          const newRefValue = `{(e) => (${refValue.slice(1, -1)} = e)}`;
+          try {
             jsxAttr.remove();
             element.addAttribute({ name: "ref", initializer: newRefValue });
+          } catch (e) {
+            continue;
           }
         }
       }
