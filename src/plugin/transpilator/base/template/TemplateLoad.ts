@@ -6,6 +6,7 @@ import { Debuger } from "../../../Debug/Log";
 import { TemplateBuild } from "./TemplateBuild";
 
 export class TemplateLoad {
+
   private static normalizeCode(code: string) {
     let newCode = "";
     const imports: string[] = [];
@@ -24,7 +25,7 @@ export class TemplateLoad {
         newCode += line + "\n";
       }
     }
-    return { newCode: newCode, lines, imports };
+    return { newCode, lines, imports };
   }
 
   private static mergeImports(existingImports: OptionalKind<ImportDeclarationStructure>[], templateImports: OptionalKind<ImportDeclarationStructure>[]): OptionalKind<ImportDeclarationStructure>[] {

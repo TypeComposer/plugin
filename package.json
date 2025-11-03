@@ -17,6 +17,9 @@
     "vite-plugin",
     "framework"
   ],
+  "bin": {
+    "tcp": "./bin/index.js"
+  },
   "sideEffects": false,
   "exports": {
     ".": {

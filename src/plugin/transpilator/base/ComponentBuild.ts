@@ -11,6 +11,7 @@ export class ComponentBuild {
     public static async analyze(fileInfo: FileInfo) {
         for await (const classInfo of fileInfo.classes) {
             ComponentBuild.injectContructor(classInfo);
+            ComponentBuild.injectOnCreateMethod(classInfo);
         }
     }
 
@@ -57,6 +58,25 @@ export class ComponentBuild {
             if (superCallStatementIndex !== -1) {
                 constructor.insertStatements(superCallStatementIndex + 1, `${tag}Component.initComponent(this, ${classDeclaration.getName()});`);
             }
+        }
+    }
+
+
+    private static injectOnCreateMethod(classInfo: ClassInfo) {
+        const classDeclaration: ClassDeclaration = classInfo.classDeclaration;
+        if (!classDeclaration || (!classInfo.isTemplateLoaded && !classDeclaration.getMethod("template"))) return;
+        const onCreateMethod = classDeclaration.getMethod("onCreate");
+        if (!onCreateMethod) {
+            classDeclaration.addMethod({
+                name: "onCreate",
+                isAsync: false,
+                isStatic: false,
+                statements: ['TypeComposer.injectTemplate(this);'],
+                parameters: [],
+            });
+        }
+        else {
+            onCreateMethod.insertStatements(0, 'TypeComposer.injectTemplate(this);\n');
         }
     }
 

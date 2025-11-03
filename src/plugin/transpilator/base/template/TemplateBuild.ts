@@ -370,7 +370,7 @@ export class TemplateBuild {
     return `"${node.getTagNameNode().getText()}"`;
   }
 
-  static convertJsxToCreateElement(node: any): string {
+  static convertJsxToCreateElement(node: any, parentComponent?: string): string {
     if (node.isKind(ts.SyntaxKind.JsxElement) || node.isKind(ts.SyntaxKind.JsxFragment)) {
       let tag = "";
       let attributesString = "{}";
@@ -384,6 +384,7 @@ export class TemplateBuild {
         } else {
           tag = this.getTagName(openingElement);
           const attributes: Record<string, any> = {};
+          if (parentComponent) attributes['[TypeComposer.parentComponentSymbol]'] = parentComponent;
           for (const attr of openingElement.getAttributes()) {
             if (attr.isKind(ts.SyntaxKind.JsxAttribute)) {
               const name = attr.getNameNode().getText();
@@ -433,6 +434,8 @@ export class TemplateBuild {
     } else if (node.isKind(ts.SyntaxKind.JsxSelfClosingElement)) {
       let tagName = this.getTagName(node);
       const attributes: Record<string, any> = {};
+      if (parentComponent)
+        attributes['[TypeComposer.parentComponentSymbol]'] = parentComponent;
       for (const attr of node.getAttributes()) {
         if (attr.isKind(ts.SyntaxKind.JsxAttribute)) {
           const name = attr.getNameNode().getText();
@@ -465,7 +468,7 @@ export class TemplateBuild {
   static async convertHtmlToJsx(sourceFile: SourceFile) {
     sourceFile.forEachDescendant((node) => {
       if (node.isKind(ts.SyntaxKind.JsxFragment) || node.isKind(ts.SyntaxKind.JsxElement) || node.isKind(ts.SyntaxKind.JsxSelfClosingElement)) {
-        const replacement = TemplateBuild.convertJsxToCreateElement(node);
+        const replacement = TemplateBuild.convertJsxToCreateElement(node, 'this');
         node.replaceWithText(replacement);
       }
     });

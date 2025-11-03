@@ -27,7 +27,7 @@ export namespace TransformStream {
 
   /** ---- JSX -> TypeComposer ---- */
 
-  function jsxAttrsToProps(opening: JsxOpeningElement | JsxSelfClosingElement): { propsCode: string; spreads: string[] } {
+  function jsxAttrsToProps(opening: JsxOpeningElement | JsxSelfClosingElement, isRoot: boolean): { propsCode: string; spreads: string[] } {
     const attrs = opening.getAttributes();
     const kv: string[] = [];
     const spreads: string[] = [];
@@ -59,34 +59,36 @@ export namespace TransformStream {
     }
 
     let propsCode = "{}";
-    if (spreads.length === 0 && kv.length === 0) propsCode = "{}";
+    if (spreads.length === 0 && kv.length === 0) propsCode ;
     else if (spreads.length === 0) propsCode = `{ ${kv.join(", ")} }`;
     else {
       const parts = ["{}"].concat(spreads).concat(kv.length ? [`{ ${kv.join(", ")} }`] : []);
       propsCode = `Object.assign(${parts.join(", ")})`;
     }
-
+    if (isRoot) {
+      propsCode = propsCode.replace("{", "{ [TypeComposer.parentComponentSymbol]: this" + (kv.length || spreads.length ? ", " : "") );
+    }
     return { propsCode, spreads };
   }
 
-  function jsxSelfClosingToCreateElement(el: JsxSelfClosingElement): string {
+  function jsxSelfClosingToCreateElement(el: JsxSelfClosingElement, isRoot: boolean = false): string {
     const tag = el.getTagNameNode().getText();
-    const { propsCode } = jsxAttrsToProps(el);
+    const { propsCode } = jsxAttrsToProps(el, isRoot);
     const isLower = /^[a-z]/.test(tag);
     const tagArg = (isLower ? JSON.stringify(tag) : tag) || "fragment";
     return `TypeComposer.createElement(${tagArg}, ${propsCode})`;
   }
 
-  function jsxOpeningToHeader(el: JsxOpeningElement): { tagArg: string; propsCode: string } {
+  function jsxOpeningToHeader(el: JsxOpeningElement, isRoot: boolean): { tagArg: string; propsCode: string } {
     const tag = el.getTagNameNode().getText();
     const isLower = /^[a-z]/.test(tag);
     const tagArg = isLower ? JSON.stringify(tag) : tag;
-    const { propsCode } = jsxAttrsToProps(el);
+    const { propsCode } = jsxAttrsToProps(el, isRoot);
     return { tagArg, propsCode };
   }
 
-  function jsxElementToCreateElement(el: JsxElement): string {
-    const { tagArg, propsCode } = jsxOpeningToHeader(el.getOpeningElement());
+  function jsxElementToCreateElement(el: JsxElement, isRoot: boolean = false): string {
+    const { tagArg, propsCode } = jsxOpeningToHeader(el.getOpeningElement(), isRoot);
     const childrenArgs = jsxChildrenToArgs(el.getJsxChildren());
     return `TypeComposer.createElement(${tagArg}, ${propsCode}${childrenArgs.length ? ", " + childrenArgs.join(", ") : ""})`;
   }
@@ -97,8 +99,6 @@ export namespace TransformStream {
 
   function jsxChildrenToArgs(children: JsxChild[]): string[] {
     const out: string[] = [];
-    console.log("🔵 jsxChildrenToArgs:", children.length);
-
     for (const ch of children) {
       if (Node.isJsxText(ch)) {
         const text = ch.getText().replace(/\s+/g, " ");
@@ -119,11 +119,6 @@ export namespace TransformStream {
     return out;
   }
 
-  /** ---- EXPRESSÕES: recursivo, convertendo JSX onde aparecer ---- */
-
-  function exprListToCode(args: readonly Expression[]): string {
-    return args.map((a) => exprToCode(a)).join(", ");
-  }
 
   function exprToCode(expr: Expression): string {
     // JSX direto como expressão
@@ -266,13 +261,13 @@ export namespace TransformStream {
     if (jsxRoots.length === 0) return "";
 
     const root = jsxRoots[0];
-    if (Node.isJsxElement(root)) return jsxElementToCreateElement(root);
-    if (Node.isJsxSelfClosingElement(root)) return jsxSelfClosingToCreateElement(root);
+    if (Node.isJsxElement(root))
+      return jsxElementToCreateElement(root, true);
+    if (Node.isJsxSelfClosingElement(root)) 
+      return jsxSelfClosingToCreateElement(root, true);
     if (Node.isJsxFragment(root)) {
-      console.log("🔵 Fragment root found");
       const args = jsxChildrenToArgs(getFragmentJsxChildren(root));
-      console.log("🔵 Fragment args:", args);
-      return args.length ? `TypeComposer.createElement("fragment", {}, ${args.join(", ")})` : "";
+      return args.length ? `TypeComposer.createElement("fragment", { [TypeComposer.parentComponentSymbol]: this }, ${args.join(", ")})` : "";
     }
     return "";
   }
@@ -281,9 +276,7 @@ export namespace TransformStream {
     const project = new Project();
     const source = project.createSourceFile(outFile, "", { overwrite: true, scriptKind: ScriptKind.TS });
     const body = convertTsxToTypeComposer(tsx) || `TypeComposer.createElement("div", {})`;
-
-    source.addStatements([`// Arquivo gerado automaticamente`, `export function ${exportName}() {`, `  return ${body};`, `}`]);
-
+    source.addStatements([`export function ${exportName}() {`, `  return ${body};`, `}`]);
     return source.getFullText();
   }
 }
