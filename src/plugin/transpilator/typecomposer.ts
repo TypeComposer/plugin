@@ -1,4 +1,4 @@
-import { Plugin, ViteDevServer,  } from 'vite';
+import { Plugin, ViteDevServer, } from 'vite';
 import { ProjectBuild } from './ProjectBuild';
 import { ChangeEvent } from './Interfaces';
 import { Debuger } from '../Debug/Log';
@@ -27,10 +27,10 @@ export namespace TypeComposer {
             configureServer(server: ViteDevServer) {
                 project.server = server;
                 server.pluginContainer.resolveId
-           
+
             },
             async buildStart() {
-                project.viteResolve =  async (id: string, importer?: string) => {
+                project.viteResolve = async (id: string, importer?: string) => {
                     const resolved = await this.resolve(id, importer, { skipSelf: true });
                     return resolved?.id ?? null;
                 };
@@ -43,7 +43,15 @@ export namespace TypeComposer {
             },
             writeBundle(options, bundle) {
             },
+            async config(config, { command }) {
+                await project.load_node_modules_dependencys();
+
+                return config;
+            },
             async configResolved(config) {
+                project.isBuilding = config.command === "build";
+                project.isLibMode = !!config.build.lib;
+                project.cssCodeSplit = config.build.cssCodeSplit ?? false;
                 project.rootPath = config.root;
                 project.projectDir = join(config.root, 'src');
                 project.indexPath = join(config.root, 'index.html');
@@ -59,10 +67,10 @@ export namespace TypeComposer {
                 //    Asstes.listFiles(project.assetsDir, project.assetsDir);
                 //}
                 //Asstes.build(project.typecomposerDir);
-            },
-             async config(config, { command }) {
-                await project.load_node_modules_dependencys();
-                return config;
+                if (config.command === "build") {
+                    config.build.rollupOptions ??= {};
+                    config.build.rollupOptions.external = config.build.rollupOptions.external || ['typecomposer'];
+                }
             },
             async load(id) {
                 if (id.includes('\x00')) {
@@ -84,7 +92,7 @@ export namespace TypeComposer {
                             return resolved.id;
                         }
                     });
-            }
+                }
                 else if (id == "virtual:translation") {
                     return id;
                 }
@@ -109,8 +117,7 @@ export namespace TypeComposer {
                 } else if (id == "virtual:translation") {
                     return code;
                 }
-                if (!id.includes("node_modules"))
-                {
+                if (!id.includes("node_modules")) {
                     return await project.transform(code, id, this);
                 }
             },

@@ -4,11 +4,13 @@ import { ChangeEvent, ClassInfo, FileInfo } from "../Interfaces";
 import { ProjectBuild } from "../ProjectBuild";
 import { Debuger } from "../../Debug/Log";
 
+export interface StyleComponentFile { path: string; tag: string | undefined; className: string }
+
 export class StyleBuild {
   public static pathName: string = "public/style.scss";
   public static readonly identifier: string = "virtual:stylebase";
   public static readonly tagPrefix: string = "tc-style";
-  static files: Map<string, { path: string; tag: string | undefined; className: string }> = new Map();
+  public static readonly files: Map<string, StyleComponentFile> = new Map();
 
   public static read(classInfo: ClassInfo, html: string): string {
     const styles = html.match(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/g);
@@ -180,6 +182,30 @@ export class StyleBuild {
     }
   }
 
+  public static getTemplateStyle(id: string): StyleComponentFile | undefined {
+    for (const [_key, value] of StyleBuild.files) {
+      if (value.path == id) {
+        return value;
+      }
+    }
+    return undefined;
+  }
+
+  // public static buildLibreryMode(text: string, id: string, project: ProjectBuild) {
+  //   // id = /Users/Ezequiel/Documents/TypeComposer/test/test-libray/src/my-button/MyButton.cs
+  //   // out: /Users/Ezequiel/Documents/TypeComposer/test/test-libray/dest/my-button/MyButton.cs
+  //   const outputDir = project.outputDir//.replace("dist", "dest2");
+  //   const relativePath = id.replace(project.projectDir, "");
+  //   const outputPath = join(outputDir, relativePath);
+  //   const outputFolder = dirname(outputPath);
+  //   if (!existsSync(outputFolder)) {
+  //     mkdirSync(outputFolder, { recursive: true });
+  //   }
+  //   writeFileSync(outputPath, text);
+  //   console.log("writeFileSync:", text);
+  //   Debuger.log("StyleBuild.buildLibreryMode: write style file to ", outputPath);
+  // }
+
   public static async transform(code: string, id: string, project: ProjectBuild): Promise<string> {
     if (StyleBuild.files.has(id)) {
       const pathComponent = StyleBuild.files.get(id);
@@ -191,7 +217,11 @@ export class StyleBuild {
           const baseTag = classInfo.registerOptions.tag || componentName;
           const tag = `[${StyleBuild.tagPrefix}~="${baseTag}"]`;
           const text = StyleBuild.extractAndRemoveThisBlock(StyleBuild.removeComent(code), tag);
-          Debuger.log("StyleBuild.transform: [", `\n${text}\n`, "]");
+          // if (project.isLibMode && project.isBuilding) {
+          //   StyleBuild.buildLibreryMode(text, id, project);
+          //   return "";
+          // }
+          Debuger.log("StyleBuild.transform: [", `\n${text}\n`, "] model:", { isLibMode: project.isLibMode, isBuilding: project.isBuilding });
           return text;
         }
       }

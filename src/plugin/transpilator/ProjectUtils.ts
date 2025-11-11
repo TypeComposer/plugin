@@ -23,6 +23,9 @@ export class ProjectUtils extends Project {
   public outputDir: string = "";
   public server!: ViteDevServer;
   public tsconfigPath: string = "";
+  public isLibMode: boolean = false;
+  public cssCodeSplit: boolean = false;
+  public isBuilding: boolean = false;
   public staticTags = new Set<string>();
   public dynamicTags = new Map<string, Set<string>>();
   public readonly components = new Map<string, { isStatic: boolean; info: Map<string, IComponentInfo> }>();

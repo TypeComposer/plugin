@@ -82,11 +82,11 @@ export interface Options {
    * Styles configuration
    */
   styles?:
-    | {
-        exclude?: ElementStyle[] | "all";
-        include?: ElementStyle[] | "all";
-      }
-    | false;
+  | {
+    exclude?: ElementStyle[] | "all";
+    include?: ElementStyle[] | "all";
+  }
+  | false;
 }
 
 /**

@@ -22,7 +22,7 @@ export class ComponentBuild {
             const superCalls = parentConstructor.getStatements().filter(statement =>
                 statement.getText().startsWith("super")
             );
-            const superText = superCalls.length > 0 ? superCalls[0].getText() : "super()";
+            const superText = superCalls.length > 0 ? superCalls[0].getText() : "super(props)";
             return {
                 parameters: parentConstructor.getParameters().map(param => ({
                     name: param.getName(), type:
@@ -45,7 +45,6 @@ export class ComponentBuild {
                     parameters: data.parameters,
                     statements: [data.super, tag, `Component.initComponent(this, ${classDeclaration.getName()});`]
                 });
-
             } else {
                 classDeclaration.addConstructor({
                     parameters: [{ name: 'props', type: 'any' }],

@@ -102,7 +102,7 @@ export class ProjectBuild extends ProjectUtils {
   private async build(fileInfo: FileInfo) {
     if (fileInfo.path == this.mainPath) {
       const imports = ["import 'virtual:translation';"];
-      if (this.options.styles !== false) imports.push(`import "typecomposer/styles/style.scss"`);
+      // if (this.options.styles !== false) imports.push(`import "typecomposer/styles/main.css"`);
       if (this.options.router !== "manual" && this.routerPath) imports.push(`import "${this.routerPath}"`);
       return this.transformMetaHot(`${imports.join("\n")}\n${fileInfo.sourceFile.getFullText()}`);
     }

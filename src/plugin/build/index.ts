@@ -1,10 +1,11 @@
 import { existsSync, readdirSync, copyFileSync, mkdirSync, rmSync } from 'node:fs'
-import { build, type Plugin, type ResolvedConfig } from 'vite'
-import { resolve } from 'node:path';
+import { build, type Plugin } from 'vite'
+import { join, resolve } from 'node:path';
 import { ProjectBuild } from '../transpilator/ProjectBuild'
 import { Debuger } from '../Debug/Log'
 import { SiteMaps } from './sitemaps';
 import { SSR } from './ssr';
+import { StyleBuild } from '../transpilator/base/StyleBuild';
 
 export namespace TypeComposerBuildPre {
 
@@ -18,9 +19,17 @@ export namespace TypeComposerBuildPre {
             name: 'typecomposer-pluginr-plugin:pwa',
             enforce: 'pre',
             apply: 'build',
-           transformIndexHtml(html) {
-            return html.replace(RE, '')
+            transformIndexHtml(html) {
+                return html.replace(RE, '')
             },
+            // config(config, { command }) {
+            //     console.log("TypeComposer Build Pre Plugin: config hook; command =", command);
+            //     if (command === "build") {
+            //         config.build ??= {};
+            //         config.build.rollupOptions ??= {};
+            //         config.build.rollupOptions.external = (id) => /^[a-z@]/.test(id);
+            //     }
+            // },
             // configResolved(_config) {
             //     config = _config
             // },
@@ -38,11 +47,12 @@ export namespace TypeComposerBuildPre {
             //     return null
             // },
             // async transform(code, id, options) {
-            //     if (id.includes('\x00')) {
-            //         Debuger.log(`transform invalid module ID: ${id}`);
+            //     if (project.isLibMode && StyleBuild.isStyleFile(id)) {
+            //         Debuger.log(`TypeComposerBuildPre: ${id}: code: ${code}`);
+            //         StyleBuild.buildLibreryMode(code, id, project);
             //         return null;
             //     }
-            //     return null
+            //     return code;
             // },
             // closeBundle: {
             //     sequential: true,
@@ -88,7 +98,6 @@ export namespace TypeComposerBuildPost {
     }
 
     export function plugin(project: ProjectBuild): Plugin {
-        let indexFileName: string = "";
         return {
             name: 'typecomposer-plugin-post',
             enforce: 'post', // Certifica-se de que o plugin será executado no final
@@ -99,14 +108,34 @@ export namespace TypeComposerBuildPost {
                 //return html.replace(/(src|href)=["']\/([^"']+)["']/g, '$1="$2"');
             },
             async generateBundle(_, bundle) {
-                let indexFileName = ""
+                // let indexFileName = ""
+                // console.log("TypeComposer Build Post Plugin: generateBundle hook;");
                 for (const [fileName, chunk] of Object.entries(bundle)) {
-                    if (fileName.endsWith('.js')) {
-                        indexFileName = fileName;
-                        break;
+
+                    if (project.isLibMode && project.cssCodeSplit && chunk.type === "chunk" && fileName.endsWith(".js")) {
+                        const templateStyle = StyleBuild.getTemplateStyle(chunk.facadeModuleId || "");
+                        if (templateStyle) {
+                            // const code = chunk.code;
+                            // chunk.
+                            chunk.code += `import "./${templateStyle.className}.css";`;
+                        }
+                        continue;
                     }
+                    // if (fileName.endsWith('.js')) {
+                    //     indexFileName = fileName;
+                    //     continue;
+                    // }
+                    // console.log("fileName:", fileName);
+                    // // // @ts-ignore
+                    // // const id = chunk.facadeModuleId;
+                    // if (StyleBuild.isStyleFile(fileName)) {
+                    //     const id = join(project.projectDir, fileName);
+                    //     const file = StyleBuild.files.get(id) || {};
+                    //     console.log(`TypeComposerBuildPost: ${id}: code: ${JSON.stringify(file, null, 2)}`);
+                    // }
+
                 }
-                await SSR.build(project, indexFileName);
+                // await SSR.build(project, indexFileName);
             },
             // Após o build principal, inicia o build dos arquivos na pasta `service`
             async closeBundle() {
@@ -121,7 +150,7 @@ export namespace TypeComposerBuildPost {
                             if (serviceFile) {
                                 // @ts-ignore
                                 const fileName = serviceFile.split('/').pop().replace(/\.(ts|js)$/, '');
-                                const tempDir = resolve(project.outputDir, `temp/${fileName}`);
+                                const tempDir = resolve(project.outputDir, `temp / ${fileName}`);
                                 await build({
                                     configFile: false, // Não utiliza a configuração principal
                                     build: {
@@ -169,6 +198,10 @@ export namespace TypeComposerBuildPost {
                     Debuger.log(`transform invalid module ID: ${id}`);
                     return null;
                 }
+                // else if (project.isLibMode && StyleBuild.isStyleFile(id)) {
+                //     Debuger.log(`TypeComposerBuildPost: ${id}: code: ${code}`);
+                //     return null;
+                // }
                 else if (ProjectBuild.isScriptFile(id)) {
                     return code.replace(/^import\s+["'](.+?\.html)["'];\s*$/gm, "").replace(/^import\s+["'](.+?\.template)["'];\s*$/gm, "").trim();
                 }
