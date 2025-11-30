@@ -1,5 +1,5 @@
 import { FileInfo } from "../Interfaces";
-import { CallExpression, Identifier, PropertyAccessExpression, SourceFile, SyntaxKind, TaggedTemplateExpression, ts } from "ts-morph";
+import { CallExpression, Identifier, PropertyAccessExpression, SourceFile, SyntaxKind, TaggedTemplateExpression, ts, Symbol } from "ts-morph";
 import { ProjectBuild } from "../ProjectBuild";
 import { Type } from "ts-morph";
 import { resolve } from "node:path";
@@ -7,6 +7,17 @@ import { TemplateBuild } from "./template/TemplateBuild";
 import { Debuger } from "../../Debug/Log";
 
 export namespace RefBuild {
+
+  export type REF_TYPES =
+    "RefString" |
+    "RefNumber" |
+    "RefBoolean" |
+    "RefList" |
+    "RefSet" |
+    "RefMap" |
+    "RefState" |
+    "RefObject"
+
   function getDefaultValueForType(type: Type): string {
     if (type.isString()) {
       return `""`;
@@ -85,7 +96,10 @@ export namespace RefBuild {
   async function transformCallExpressionComputed(callExpr: CallExpression<ts.CallExpression>): Promise<boolean> {
     const args = callExpr.getArguments();
     if (args.length !== 1) return false;
-    const key = TemplateBuild.generateUniqueKey(callExpr.getText());
+    const argument = callExpr.getArguments()[0];
+    const arrow = argument.isKind(SyntaxKind.ArrowFunction) ? argument.asKindOrThrow(SyntaxKind.ArrowFunction) : null;
+
+    const key = arrow && arrow.getParameters().length > 0 ? arrow.getParameters()[0].getName() : TemplateBuild.generateUniqueKey(callExpr.getText());
     const arg = args[0];
 
     if (!arg || !arg.compilerNode || !ts.isArrowFunction(arg.compilerNode)) return false;
@@ -125,8 +139,15 @@ export namespace RefBuild {
     for (const { expr, newText } of toReplace) {
       expr.replaceWithText(newText);
     }
-    const argument = callExpr.getArguments()[0]?.getText() || "";
-    const newText = callExpr.getText().replace(argument, `(${key}) => { return(${argument})(); }`);
+    if (arrow) {
+      if (arrow.getParameters().length === 0)
+        arrow.addParameter({ name: key });
+      return true;
+    }
+    // const argument = callExpr.getArguments()[0]?.getText() || "";
+
+    const argumentText = argument.getText() || "";
+    const newText = callExpr.getText().replace(argumentText, `(${key}) => { return(${argumentText})(); }`);
     Debuger.log("computed:replace:", newText);
     callExpr.replaceWithText(newText);
     return true;
@@ -154,36 +175,45 @@ export namespace RefBuild {
     for (const expr of taggedTemplates) {
       const tag = expr.getTag();
       const tagText = tag.getText();
-      if (tagText === "computed" && isRefType(tag.getType())) {
+      if ((tagText === "computed" || tagText === "C") && isRefType(tag.getType(), tagText === "C" ? tag.getType()?.getSymbol() : undefined)) {
         const key = TemplateBuild.generateUniqueKey(expr.getText());
         const symbol = tag.getSymbol();
         if (!symbol) continue;
-        const identifiers = expr.getDescendantsOfKind(SyntaxKind.Identifier);
 
         type Replacement = { expr: PropertyAccessExpression | Identifier; newText: string };
         const toReplace: Replacement[] = [];
 
-        for (const id of identifiers) {
-          const type = id.getType();
-          if (!type || !isRefType(type)) continue;
-          if (type.getText().includes("ref/Computed")) continue;
-
-          const expr = id.getParentIfKind(SyntaxKind.PropertyAccessExpression);
-          if (!expr) continue;
-
-          const original = expr.getText();
-          if (original.endsWith(".value") && !original.startsWith("this.")) {
-            const convertedOriginal = original.substring(0, original.length - 6);
-            toReplace.push({ expr, newText: `${key}.put(${convertedOriginal}).value` });
-          } else toReplace.push({ expr, newText: `${key}.put(${original})` });
+        const template = expr.getTemplate();
+        if (template.getKind() !== SyntaxKind.TemplateExpression) {
+          continue;
+        }
+        const spans = template.asKindOrThrow(SyntaxKind.TemplateExpression).getTemplateSpans();
+        for (const span of spans) {
+          const identifiers = span.getExpression().getDescendantsOfKind(SyntaxKind.Identifier);
+          for (let index = identifiers.length - 1; index >= 0; index--) {
+            const id = identifiers[index];
+            const type = id.getType();
+            if (!type || !isRefType(type)) continue;
+            let newText = `${key}.put(`;
+            for (let i = 0; i < identifiers.length; i++) {
+              newText += identifiers[i].getText();
+              if (i === index) newText += ")";
+              if (i < identifiers.length - 1) newText += ".";
+            }
+            const expr = span.getExpression();
+            if (!expr) continue;
+            // @ts-ignore
+            toReplace.push({ expr: expr, newText });
+            break;
+          }
         }
 
         toReplaceRoot.push({
           expr: expr,
           newText: () => {
             const argument = expr.getTemplate().getText() || "";
-            const newText = expr.getText().replace(argument, `((${key}) => ${argument})`);
-            return newText;
+            // const newText = expr.getText().replace(argument, `((${key}) => ${argument})`);
+            return `C((${key}) => ${argument})`
           },
         });
 
@@ -208,12 +238,10 @@ export namespace RefBuild {
   async function transformCallExpressionRef(fileInfo: FileInfo, project: ProjectBuild, callExpr: CallExpression<ts.CallExpression>): Promise<boolean> {
     const typeArguments = callExpr.getTypeArguments();
     const args = callExpr.getArguments();
-
     if (typeArguments.length > 0 && args.length === 0) {
       const typeNode = typeArguments[0];
       const typeChecker = project.getTypeChecker();
       let type = typeChecker.getTypeAtLocation(typeNode);
-      if (!isRefType(type)) return false;
       if (isPrimitiveType(type)) {
         const defaultValue = convertTypeToInitialization(type);
         callExpr.replaceWithText(`ref<${typeNode.getText()}>(${defaultValue})`);
@@ -242,8 +270,22 @@ export namespace RefBuild {
     return false;
   }
 
-  export function isRefType(type: Type): boolean {
-    if (!type) return false;
+  export function isRefType(type: Type, symbol?: Symbol, types?: RefBuild.REF_TYPES[]): boolean {
+    if (symbol) {
+      const declarations = symbol.getDeclarations();
+      for (const decl of declarations) {
+        const sourceFile = decl.getSourceFile();
+        const filePath = sourceFile.getFilePath();
+        if (/typecomposer[\\/]+typings[\\/]+index\.d\.ts/.test(filePath)) {
+          return true;
+        }
+      }
+    }
+    if (type.getText().trim().startsWith("{"))
+      return false;
+    if (types && types.length > 0 && !types.find((typeName) => type.getText().includes(typeName))) {
+      return false;
+    }
     return /typecomposer[\\/]+core[\\/]+ref[\\/]/.test(type.getText());
   }
 
@@ -264,11 +306,7 @@ export namespace RefBuild {
       }
       checked.add(callExpr);
       const text = expression.getText();
-      if (!text || !/ref|refProperty|computed/.test(text)) {
-        index++;
-        continue;
-      }
-      if (!isRefType(expression.getType())) {
+      if (text !== "TypeComposer.computed" && !isRefType(expression.getType(), expression.getSymbol())) {
         index++;
         continue;
       }
@@ -277,7 +315,7 @@ export namespace RefBuild {
         await transformCallExpressionRef(fileInfo, project, callExpr);
       } else if (text === "refProperty") {
         await transformCallExpressionRefProperty(fileInfo, project, callExpr);
-      } else if (text === "computed") {
+      } else if (text === "computed" || text == "TypeComposer.computed") {
         await transformCallExpressionComputed(callExpr);
       }
       callExpressions = fileInfo.sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);

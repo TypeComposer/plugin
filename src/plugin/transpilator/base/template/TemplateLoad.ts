@@ -113,6 +113,7 @@ export class TemplateLoad {
     }));
   }
 
+  //AQUI
   private static injectTemplate(classDeclaration: ClassDeclaration, templateUrl: string) {
     const templateMethod = classDeclaration.getMethod("template");
     if (templateMethod) {

@@ -67,7 +67,7 @@ export namespace TypeComposer {
                 //    Asstes.listFiles(project.assetsDir, project.assetsDir);
                 //}
                 //Asstes.build(project.typecomposerDir);
-                if (config.command === "build") {
+                if (project.isLibMode && config.command === "build") {
                     config.build.rollupOptions ??= {};
                     config.build.rollupOptions.external = config.build.rollupOptions.external || ['typecomposer'];
                 }

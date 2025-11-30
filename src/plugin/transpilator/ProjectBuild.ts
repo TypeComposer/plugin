@@ -14,7 +14,6 @@ import { ComponentBuild } from "./base/ComponentBuild";
 import { RefBuild } from "./base/RefBuild";
 import { SvgBuild } from "./base/SvgBuild";
 import { InfoComponent } from "./base/InfoComponent";
-import { TemplateLoad } from "./base/template/TemplateLoad";
 import { InjectBuild } from "./base/InjectBuild";
 
 export class ProjectBuild extends ProjectUtils {
@@ -74,7 +73,6 @@ export class ProjectBuild extends ProjectUtils {
       return await this.build(fileInfo);
     }
     await InjectBuild.analyze(fileInfo, this);
-    await TemplateLoad.analyze(fileInfo);
     await TemplateBuild.analyze(fileInfo, this);
     await RegisterBuild.analyze(fileInfo, this);
     await StyleBuild.analyze(fileInfo);
