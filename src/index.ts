@@ -3,6 +3,7 @@ import { ProjectBuild } from "./plugin/transpilator/ProjectBuild";
 import { Debuger } from "./plugin/Debug/Log";
 import { TypeComposer } from "./plugin/transpilator/typecomposer";
 import { TypeComposerBuildPost, TypeComposerBuildPre } from "./plugin/build";
+import { TypeComposerProxy } from "./plugin/proxy";
 
 type ElementStyle =
   | "button"
@@ -79,6 +80,11 @@ export interface Options {
    */
   metaHot?: boolean;
   /**
+   * Enable API proxying
+   * @default true
+   */
+  proxy?: boolean;
+  /**
    * Styles configuration
    */
   styles?:
@@ -106,6 +112,9 @@ export default function typeComposer(options: Options = { assetsDir: "src/assets
     TypeComposerBuildPre.plugin(project),
     TypeComposerBuildPost.plugin(project),
   ];
+  if (options.proxy !== false) {
+    plugins.push(TypeComposerProxy.plugin(project));
+  }
   // if (pwa) {
   //     Debuger.log('activate pwa build');
   //     // @ts-ignore

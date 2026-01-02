@@ -165,8 +165,54 @@ export class TemplateBuild {
     }
   }
 
+  // TemplateExpression
+
+
+
+
+  static async transformTemplateExpression(fileInfo: FileInfo) {
+    const sourceFile = fileInfo.sourceFile;
+
+    const jsxExpressions = sourceFile.getDescendantsOfKind(
+      SyntaxKind.JsxExpression
+    );
+
+    for (const jsxExpr of jsxExpressions) {
+      const expr = jsxExpr.getExpression();
+      if (!expr) continue;
+
+      if (!Node.isTemplateExpression(expr)) continue;
+
+      let isTemplateRef = false;
+
+      for (const span of expr.getTemplateSpans()) {
+        const innerExpr = span.getExpression();
+
+        if (
+          RefBuild.isRefType(
+            innerExpr.getType(),
+            innerExpr.getSymbol()
+          )
+        ) {
+          isTemplateRef = true;
+          break;
+        }
+      }
+
+      if (!isTemplateRef) continue;
+
+      // 🔥 TRANSFORMAÇÃO AQUI 🔥
+      const originalText = expr.getText(); // `Test: ${this.testName}`
+      const taggedText = `C${originalText}`; // C`Test: ${this.testName}`
+
+      expr.replaceWithText(taggedText);
+    }
+  }
+
+
   public static async analyze(fileInfo: FileInfo, project: ProjectBuild) {
     await TemplateLoad.analyze(fileInfo);
+    await TemplateBuild.transformTemplateExpression(fileInfo);
     const selfClosingElements = fileInfo.sourceFile.getDescendantsOfKind(SyntaxKind.JsxSelfClosingElement) as JsxSelfClosingElement[];
     const openingElements = fileInfo.sourceFile.getDescendantsOfKind(SyntaxKind.JsxOpeningElement) as JsxOpeningElement[];
     const jsxElements = [...selfClosingElements, ...openingElements];

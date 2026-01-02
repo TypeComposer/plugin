@@ -1,5 +1,5 @@
 import { FileInfo } from "../Interfaces";
-import { CallExpression, Identifier, PropertyAccessExpression, SourceFile, SyntaxKind, TaggedTemplateExpression, ts, Symbol } from "ts-morph";
+import { CallExpression, Identifier, PropertyAccessExpression, SourceFile, SyntaxKind, TaggedTemplateExpression, ts, Symbol, Node } from "ts-morph";
 import { ProjectBuild } from "../ProjectBuild";
 import { Type } from "ts-morph";
 import { resolve } from "node:path";
@@ -153,6 +153,39 @@ export namespace RefBuild {
     return true;
   }
 
+  function getFullChain(node: Node): string {
+    const result: string[] = [];
+
+    let current: Node | undefined = node;
+
+    // sobe até o PropertyAccessExpression
+    while (current && !Node.isPropertyAccessExpression(current)) {
+      current = current.getParent();
+    }
+
+    while (current) {
+      if (Node.isPropertyAccessExpression(current)) {
+        result.unshift(current.getName());
+        current = current.getExpression();
+        continue;
+      }
+
+      if (Node.isThisExpression(current)) {
+        result.unshift("this");
+        break;
+      }
+
+      if (Node.isIdentifier(current)) {
+        result.unshift(current.getText());
+        break;
+      }
+
+      break;
+    }
+
+    return result.join(".");
+  }
+
   async function transformCallExpressionRefProperty(fileInfo: FileInfo, project: ProjectBuild, callExpr: CallExpression<ts.CallExpression>): Promise<boolean> {
     const classAncestor = callExpr.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);
     const className = classAncestor?.getName() ?? "";
@@ -196,7 +229,7 @@ export namespace RefBuild {
             if (!type || !isRefType(type)) continue;
             let newText = `${key}.put(`;
             for (let i = 0; i < identifiers.length; i++) {
-              newText += identifiers[i].getText();
+              newText += getFullChain(identifiers[i]);
               if (i === index) newText += ")";
               if (i < identifiers.length - 1) newText += ".";
             }
@@ -212,7 +245,6 @@ export namespace RefBuild {
           expr: expr,
           newText: () => {
             const argument = expr.getTemplate().getText() || "";
-            // const newText = expr.getText().replace(argument, `((${key}) => ${argument})`);
             return `C((${key}) => ${argument})`
           },
         });
