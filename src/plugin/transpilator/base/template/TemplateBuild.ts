@@ -90,7 +90,7 @@ export class TemplateBuild {
     }
   }
 
-  private static getFullRefText(id: Identifier): string {
+  public static getFullRefText(id: Identifier): string {
     let node: Node = id;
     while (
       node.getParent()?.isKind(SyntaxKind.PropertyAccessExpression)
@@ -101,75 +101,91 @@ export class TemplateBuild {
     return node.getText();
   }
 
-  private static async transformJsxCondition(fileInfo: FileInfo, project: ProjectBuild) {
+  static isSimpleRefExpression(expr: Expression): boolean {
+    if (Node.isPropertyAccessExpression(expr)) {
+      const type = expr.getType();
+      return RefBuild.isRefType(type, undefined);
+    }
+
+    if (Node.isIdentifier(expr)) {
+      const type = expr.getType();
+      return RefBuild.isRefType(type, undefined);
+    }
+
+    return false;
+  }
+
+  // AQUI
+  private static async transformJsxCondition(
+    fileInfo: FileInfo,
+    project: ProjectBuild
+  ) {
     const transformations: TransformationsType[] = [];
+
     for await (const classInfo of fileInfo.classes) {
       const method = classInfo.classDeclaration.getMethod("template");
       if (!method) continue;
-      for await (const jsxExpr of method.getDescendantsOfKind(SyntaxKind.JsxExpression)) {
-        const expression = jsxExpr?.getExpression();
+
+      for (const jsxExpr of method.getDescendantsOfKind(SyntaxKind.JsxExpression)) {
+        const expression = jsxExpr.getExpression();
         if (!expression) continue;
+
+        // 🚫 nunca mexer em funções
+        if (
+          expression.isKind(SyntaxKind.ArrowFunction) ||
+          expression.isKind(SyntaxKind.FunctionExpression)
+        ) {
+          continue;
+        }
+
+        // 🚫 NÃO envolver ref simples
+        if (TemplateBuild.isSimpleRefExpression(expression)) {
+          continue;
+        }
+
         const refs = new Set<string>();
-        //  CallExpression
-        if (expression.isKind(SyntaxKind.CallExpression)) {
-          const identifiers = expression.getDescendantsOfKind(SyntaxKind.Identifier);
-          for (let index = 0; index < identifiers.length; index++) {
-            const id = identifiers[index];
-            const type = id.getType();
-            if (RefBuild.isRefType(type, undefined)) {
-              refs.add(TemplateBuild.getFullRefText(id));
-            }
+
+        const identifiers = expression.getDescendantsOfKind(SyntaxKind.Identifier);
+        for (const id of identifiers) {
+          const type = id.getType();
+          if (RefBuild.isRefType(type, undefined)) {
+            refs.add(TemplateBuild.getFullRefText(id));
           }
         }
-        // ternary 
-        else if (expression.isKind(SyntaxKind.ConditionalExpression)) {
-          const identifiers = expression.getDescendantsOfKind(SyntaxKind.Identifier);
-          for (let index = 0; index < identifiers.length; index++) {
-            const id = identifiers[index];
-            const type = id.getType();
-            if (RefBuild.isRefType(type, undefined)) {
-              refs.add(TemplateBuild.getFullRefText(id));
-            }
-          }
-        }
-        // logical expression
-        else if (expression.isKind(SyntaxKind.BinaryExpression)) {
-          const binaryExpr = expression.asKindOrThrow(SyntaxKind.BinaryExpression);
-          const operatorToken = binaryExpr.getOperatorToken();
-          const operatorKind = operatorToken.getKind();
-          if (operatorKind === SyntaxKind.AmpersandAmpersandToken || operatorKind === SyntaxKind.BarBarToken) {
-            const identifiers = expression.getDescendantsOfKind(SyntaxKind.Identifier);
-            for (let index = 0; index < identifiers.length; index++) {
-              const id = identifiers[index];
-              const type = id.getType();
-              if (RefBuild.isRefType(type, undefined)) {
-                refs.add(TemplateBuild.getFullRefText(id));
-              }
-            }
-          }
-        }
-        if (refs.size) {
-          const computedKey = TemplateBuild.generateUniqueKey(expression.getText());
-          transformations.push({
-            node: expression,
-            newText: `TypeComposer.computed((${computedKey}) => { return (${expression.getText()}); })`,
-            args: [computedKey],
-          });
-        }
+
+        if (!refs.size) continue;
+
+        const originalText = expression.getText();
+        const computedKey = TemplateBuild.generateUniqueKey(originalText);
+
+        Debuger.log(
+          "Transforming JSX Expression with Refs:",
+          originalText
+        );
+
+        const finalText =
+          `TypeComposer.computed((${computedKey}) => { return (${originalText}); })`;
+
+        transformations.push({
+          node: expression,
+          newText: finalText,
+          args: [computedKey],
+        });
       }
     }
+
     const transformationsKeyAttrs: TransformationsType[] = [];
+
     for (const { node, newText, args } of transformations) {
       const newNode = node.replaceWithText(newText);
       this.transformAtributtesKey(newNode, args[0], transformationsKeyAttrs);
     }
   }
 
+
+
+
   // TemplateExpression
-
-
-
-
   static async transformTemplateExpression(fileInfo: FileInfo) {
     const sourceFile = fileInfo.sourceFile;
 
@@ -183,29 +199,40 @@ export class TemplateBuild {
 
       if (!Node.isTemplateExpression(expr)) continue;
 
-      let isTemplateRef = false;
+      let hasRef = false;
 
       for (const span of expr.getTemplateSpans()) {
-        const innerExpr = span.getExpression();
+        const spanExpr = span.getExpression();
 
-        if (
-          RefBuild.isRefType(
-            innerExpr.getType(),
-            innerExpr.getSymbol()
-          )
-        ) {
-          isTemplateRef = true;
+        const containsRef = spanExpr
+          .getDescendants()
+          .some(node => {
+            if (!Node.isExpression(node)) return false;
+
+            if (
+              Node.isPropertyAccessExpression(node) &&
+              Node.isCallExpression(node.getParent())
+            ) {
+              return false;
+            }
+
+            return RefBuild.isRefType(
+              node.getType(),
+              node.getSymbol()
+            );
+          });
+
+        if (containsRef) {
+          hasRef = true;
           break;
         }
       }
 
-      if (!isTemplateRef) continue;
+      if (!hasRef) continue;
 
-      // 🔥 TRANSFORMAÇÃO AQUI 🔥
-      const originalText = expr.getText(); // `Test: ${this.testName}`
-      const taggedText = `C${originalText}`; // C`Test: ${this.testName}`
-
-      expr.replaceWithText(taggedText);
+      const originalText = `C${expr.getText()}`;
+      Debuger.log("Transforming TemplateExpression:", originalText);
+      expr.replaceWithText(originalText);
     }
   }
 
@@ -222,6 +249,10 @@ export class TemplateBuild {
     for await (const classInfo of fileInfo.classes) {
       this.convertTemplate(classInfo.classDeclaration, project);
     }
+    // console.log("---------------------------------------------------");
+    // console.log("TemplateBuild.analyze finished for file:", fileInfo.path);
+    // // console.log(fileInfo.sourceFile.getFullText());
+    // console.log("---------------------------------------------------");
   }
 
   private static convertTemplate(classDeclaration: ClassDeclaration, project: ProjectBuild) {

@@ -68,8 +68,9 @@ export class ProjectBuild extends ProjectUtils {
     this.components.set(pathName, { isStatic: false, info: new Map() });
     await InfoComponent.analyze(fileInfo, this);
     if (fileInfo.classes.find((classInfo: ClassInfo) => classInfo.isComponent) == undefined) {
-      await RefBuild.analyze(fileInfo, this);
       await InjectBuild.analyze(fileInfo, this);
+      await TemplateBuild.analyze(fileInfo, this);
+      await RefBuild.analyze(fileInfo, this);
       return await this.build(fileInfo);
     }
     await InjectBuild.analyze(fileInfo, this);
@@ -100,7 +101,7 @@ export class ProjectBuild extends ProjectUtils {
   private async build(fileInfo: FileInfo) {
     if (fileInfo.path == this.mainPath) {
       const imports = ["import 'virtual:translation';"];
-      // if (this.options.styles !== false) imports.push(`import "typecomposer/styles/main.css"`);
+      if (this.options.styles !== false) imports.push(`import "typecomposer/theme.css"`);
       if (this.options.router !== "manual" && this.routerPath) imports.push(`import "${this.routerPath}"`);
       return this.transformMetaHot(`${imports.join("\n")}\n${fileInfo.sourceFile.getFullText()}`);
     }

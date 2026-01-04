@@ -93,6 +93,24 @@ export namespace RefBuild {
     return undefined;
   }
 
+  function isComputedCall(callExpr: CallExpression): boolean {
+    const expr = callExpr.getExpression();
+
+    // computed(...)
+    if (Node.isIdentifier(expr)) {
+      return expr.getText() === "computed";
+    }
+
+    // TypeComposer.computed(...)
+    if (Node.isPropertyAccessExpression(expr)) {
+      const name = expr.getName();
+      const left = expr.getExpression().getText();
+      return name === "computed" || name === "C" && left === "TypeComposer";
+    }
+
+    return false;
+  }
+
   async function transformCallExpressionComputed(callExpr: CallExpression<ts.CallExpression>): Promise<boolean> {
     const args = callExpr.getArguments();
     if (args.length !== 1) return false;
@@ -120,7 +138,10 @@ export namespace RefBuild {
     for (const id of identifiers) {
       const name = id.getText();
       const type = id.getType();
-      if (!type || !isRefType(type)) continue;
+      if ((name === 'filteredResources')) {
+        console.log("Checking identifier:", name, "Type:", type.getText(), "Symbol:", type.getSymbol()?.getName(), ' text: ', id.getText(), 'isComputedCall:');
+      }
+      if (!type || (!isRefType(type) && type.getText() !== 'never')) continue;
 
       const expr = id.getParentIfKind(SyntaxKind.PropertyAccessExpression);
       if (!expr) continue;
@@ -199,73 +220,64 @@ export namespace RefBuild {
     return true;
   }
 
-  export async function transformCallExpressionComputedTemplate(fileInfo: FileInfo) {
-    const taggedTemplates = fileInfo.sourceFile.getDescendantsOfKind(SyntaxKind.TaggedTemplateExpression);
 
-    type Replacement = { expr: PropertyAccessExpression | Identifier | TaggedTemplateExpression; newText: string | (() => string) };
-    const toReplaceRoot: Replacement[] = [];
+
+  export async function transformCallExpressionComputedTemplate(fileInfo: FileInfo) {
+    // pega todos os TaggedTemplateExpression no arquivo
+    const taggedTemplates = fileInfo.sourceFile.getDescendantsOfKind(SyntaxKind.TaggedTemplateExpression);
 
     for (const expr of taggedTemplates) {
       const tag = expr.getTag();
       const tagText = tag.getText();
-      if ((tagText === "computed" || tagText === "C") && isRefType(tag.getType(), tagText === "C" ? tag.getType()?.getSymbol() : undefined)) {
-        const key = TemplateBuild.generateUniqueKey(expr.getText());
-        const symbol = tag.getSymbol();
-        if (!symbol) continue;
 
-        type Replacement = { expr: PropertyAccessExpression | Identifier; newText: string };
-        const toReplace: Replacement[] = [];
+      // filtra apenas templates marcados como `computed` ou `C` que sejam refs
+      if ((tagText !== "computed" && tagText !== "C")) continue;
+      if (!isRefType(tag.getType(), tagText === "C" ? tag.getType()?.getSymbol() : undefined)) continue;
 
-        const template = expr.getTemplate();
-        if (template.getKind() !== SyntaxKind.TemplateExpression) {
-          continue;
-        }
-        const spans = template.asKindOrThrow(SyntaxKind.TemplateExpression).getTemplateSpans();
-        for (const span of spans) {
-          const identifiers = span.getExpression().getDescendantsOfKind(SyntaxKind.Identifier);
-          for (let index = identifiers.length - 1; index >= 0; index--) {
-            const id = identifiers[index];
-            const type = id.getType();
-            if (!type || !isRefType(type)) continue;
-            let newText = `${key}.put(`;
-            for (let i = 0; i < identifiers.length; i++) {
-              newText += getFullChain(identifiers[i]);
-              if (i === index) newText += ")";
-              if (i < identifiers.length - 1) newText += ".";
-            }
-            const expr = span.getExpression();
-            if (!expr) continue;
-            // @ts-ignore
-            toReplace.push({ expr: expr, newText });
-            break;
-          }
-        }
+      const key = TemplateBuild.generateUniqueKey(expr.getText());
 
-        toReplaceRoot.push({
-          expr: expr,
-          newText: () => {
-            const argument = expr.getTemplate().getText() || "";
-            return `C((${key}) => ${argument})`
-          },
-        });
+      const template = expr.getTemplate();
+      if (!Node.isTemplateExpression(template)) continue;
 
-        for (const { expr, newText } of toReplace) {
-          expr.replaceWithText(newText);
-        }
+      const spans = template.getTemplateSpans();
+
+      // percorre cada span do template
+      for (const span of spans) {
+        const spanExpr = span.getExpression();
+        if (!spanExpr) continue;
+
+        // pega todos os identifiers dentro do span
+        const identifiers = spanExpr.getDescendantsOfKind(SyntaxKind.Identifier);
+
+        // pega apenas a primeira ref
+        const firstRef = identifiers.find(id => isRefType(id.getType()));
+        if (!firstRef) continue;
+
+        // pega a cadeia completa da ref (ex: this.opened, this.foo.bar)
+        const fullChain = getFullChain(firstRef);
+
+        // pega o texto atual do span (ex: this.opened.toString())
+        const spanText = spanExpr.getText();
+
+        // substitui apenas a primeira ref dentro do texto do span
+        Debuger.log("Transforming TaggedTemplateExpression span:", spanText, "->", `${key}.put(${fullChain})`);
+        const newSpanText = spanText.replace(TemplateBuild.getFullRefText(firstRef), `${key}.put(${fullChain})`);
+
+        // substitui o span inteiro de forma segura
+        spanExpr.replaceWithText(newSpanText);
+
+        // só transformamos a primeira ref
+        break;
       }
-    }
-    for (const tr of toReplaceRoot) {
-      tr.newText = typeof tr.newText === "function" ? tr.newText() : tr.newText;
-    }
-    if (toReplaceRoot.length)
-      Debuger.log(
-        "computed:template:replace:",
-        toReplaceRoot.map((tr) => `${typeof tr.newText === "string" ? tr.newText : tr.newText()}`)
-      );
-    for (const { expr, newText } of toReplaceRoot) {
-      expr.replaceWithText(newText);
+
+      // substitui o tagged template inteiro de forma segura
+      const templateText = template.getText(); // já contém _c__tc_.put(...) na primeira ref
+      expr.replaceWithText(`C((${key}) => ${templateText})`);
     }
   }
+
+
+
 
   async function transformCallExpressionRef(fileInfo: FileInfo, project: ProjectBuild, callExpr: CallExpression<ts.CallExpression>): Promise<boolean> {
     const typeArguments = callExpr.getTypeArguments();
