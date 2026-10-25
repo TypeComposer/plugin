@@ -130,6 +130,14 @@ export class TemplateBuild {
         const expression = jsxExpr.getExpression();
         if (!expression) continue;
 
+        if (
+          Node.isCallExpression(expression) &&
+          (expression.getExpression().getText() === "TypeComposer.computed"
+            || expression.getExpression().getText() === "computed")
+        ) {
+          continue;
+        }
+
         // 🚫 nunca mexer em funções
         if (
           expression.isKind(SyntaxKind.ArrowFunction) ||
@@ -229,10 +237,7 @@ export class TemplateBuild {
       }
 
       if (!hasRef) continue;
-
-      const originalText = `C${expr.getText()}`;
-      Debuger.log("Transforming TemplateExpression:", originalText);
-      expr.replaceWithText(originalText);
+      expr.replaceWithText(`TypeComposer.computed(() => ${expr.getText().replace(/^C`/, "`")})`);
     }
   }
 
@@ -249,10 +254,6 @@ export class TemplateBuild {
     for await (const classInfo of fileInfo.classes) {
       this.convertTemplate(classInfo.classDeclaration, project);
     }
-    // console.log("---------------------------------------------------");
-    // console.log("TemplateBuild.analyze finished for file:", fileInfo.path);
-    // // console.log(fileInfo.sourceFile.getFullText());
-    // console.log("---------------------------------------------------");
   }
 
   private static convertTemplate(classDeclaration: ClassDeclaration, project: ProjectBuild) {

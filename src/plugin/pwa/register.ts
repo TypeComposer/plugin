@@ -1,8 +1,7 @@
-import { TypeComposerPWA } from ".";
 import { notification } from "./notification";
 
 
-export function register(options: TypeComposerPWA.PWDOptions, indexjs: string) {
+export function register(options: unknown, indexjs: string) {
   return {
     fileName: 'register-sw.js',
     code: `

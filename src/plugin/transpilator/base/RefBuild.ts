@@ -1,10 +1,9 @@
 import { FileInfo } from "../Interfaces";
-import { CallExpression, Identifier, PropertyAccessExpression, SourceFile, SyntaxKind, TaggedTemplateExpression, ts, Symbol, Node } from "ts-morph";
+import { CallExpression, Identifier, SourceFile, SyntaxKind, ts, Symbol, Node } from "ts-morph";
 import { ProjectBuild } from "../ProjectBuild";
 import { Type } from "ts-morph";
 import { resolve } from "node:path";
 import { TemplateBuild } from "./template/TemplateBuild";
-import { Debuger } from "../../Debug/Log";
 
 export namespace RefBuild {
 
@@ -105,107 +104,245 @@ export namespace RefBuild {
     if (Node.isPropertyAccessExpression(expr)) {
       const name = expr.getName();
       const left = expr.getExpression().getText();
-      return name === "computed" || name === "C" && left === "TypeComposer";
+      return (name === "computed" || name === "C") && left === "TypeComposer";
     }
 
     return false;
   }
 
-  async function transformCallExpressionComputed(callExpr: CallExpression<ts.CallExpression>): Promise<boolean> {
-    const args = callExpr.getArguments();
-    if (args.length !== 1) return false;
-    const argument = callExpr.getArguments()[0];
-    const arrow = argument.isKind(SyntaxKind.ArrowFunction) ? argument.asKindOrThrow(SyntaxKind.ArrowFunction) : null;
+  // function isComputedRef(id: Identifier | PropertyAccessExpression<ts.PropertyAccessExpression>): boolean {
+  //   if (id instanceof PropertyAccessExpression) {
+  //     const expr = id.getExpression();
+  //     if (Node.isIdentifier(expr) && expr.getText() === "computed") {
+  //       return true;
+  //     }
+  //     if (Node.isPropertyAccessExpression(expr) && expr.getName() === "computed") {
+  //       return true;
+  //     }
+  //     return false;
+  //   }
+  //   const defs = id.getDefinitions();
 
-    const key = arrow && arrow.getParameters().length > 0 ? arrow.getParameters()[0].getName() : TemplateBuild.generateUniqueKey(callExpr.getText());
-    const arg = args[0];
+  //   for (const def of defs) {
+  //     const decl = def.getDeclarationNode();
+  //     if (!decl) continue;
 
-    if (!arg || !arg.compilerNode || !ts.isArrowFunction(arg.compilerNode)) return false;
+  //     let initializer: Node | undefined;
 
-    const lambda = arg.asKind(SyntaxKind.ArrowFunction);
-    if (!lambda) return false;
-    const body = lambda.getBody();
+  //     // class property
+  //     if (Node.isPropertyDeclaration(decl)) {
+  //       initializer = decl.getInitializer();
+  //     }
 
-    const declaredNames = new Set(lambda.getDescendantsOfKind(SyntaxKind.VariableDeclaration).map((decl) => decl.getName()));
+  //     // variável local / const / let
+  //     else if (Node.isVariableDeclaration(decl)) {
+  //       initializer = decl.getInitializer();
+  //     }
 
-    lambda.getParameters().forEach((param) => declaredNames.add(param.getName()));
+  //     // parâmetro com default (raro, mas possível)
+  //     else if (Node.isParameterDeclaration(decl)) {
+  //       initializer = decl.getInitializer();
+  //     }
 
+  //     if (!initializer) continue;
+
+  //     // precisa ser call expression
+  //     if (!Node.isCallExpression(initializer)) continue;
+
+  //     const expr = initializer.getExpression();
+
+  //     // computed(...)
+  //     if (Node.isIdentifier(expr) && expr.getText() === "computed") {
+  //       return true;
+  //     }
+
+  //     // TypeComposer.computed(...)
+  //     if (
+  //       Node.isPropertyAccessExpression(expr) &&
+  //       expr.getName() === "computed"
+  //     ) {
+  //       return true;
+  //     }
+  //   }
+
+  //   return false;
+  // }
+
+
+  function getUsedVariables(body: Node): Identifier[] {
     const identifiers = body.getDescendantsOfKind(SyntaxKind.Identifier);
 
-    type Replacement = { expr: PropertyAccessExpression; newText: string };
-    const toReplace: Replacement[] = [];
+    return identifiers.filter(id => {
+      const parent = id.getParent();
+
+      // ❌ declaração: let x = ...
+      if (Node.isVariableDeclaration(parent) && parent.getNameNode() === id) {
+        return false;
+      }
+
+      // ❌ parâmetro: (x) => ...
+      if (Node.isParameterDeclaration(parent)) {
+        return false;
+      }
+
+      // ❌ nome da propriedade: obj.prop
+      if (
+        Node.isPropertyAccessExpression(parent) &&
+        parent.getNameNode() === id
+      ) {
+        return false;
+      }
+
+      // ❌ nome de método: obj.method()
+      if (
+        Node.isCallExpression(parent) &&
+        parent.getExpression() === id
+      ) {
+        return false;
+      }
+
+      // ❌ chave de objeto: { foo: bar }
+      if (
+        Node.isPropertyAssignment(parent) &&
+        parent.getNameNode() === id
+      ) {
+        return false;
+      }
+
+      // ❌ import / type
+      if (
+        Node.isImportSpecifier(parent) ||
+        Node.isTypeReference(parent)
+      ) {
+        return false;
+      }
+
+      // ✅ uso real de variável
+      return true;
+    });
+  }
+
+  function isComputedSymbol(symbol: Symbol | undefined): boolean {
+    if (!symbol) return false;
+
+    return symbol.getDeclarations()?.some(decl => {
+      if (Node.isVariableDeclaration(decl)) {
+        return isComputedInitializer(decl.getInitializer());
+      }
+
+      if (Node.isPropertyDeclaration(decl)) {
+        return isComputedInitializer(decl.getInitializer());
+      }
+
+      return false;
+    }) ?? false;
+  }
+
+  function isComputedInitializer(node: Node | undefined): boolean {
+    if (!node || !Node.isCallExpression(node)) return false;
+
+    const expr = node.getExpression();
+    return Node.isIdentifier(expr) && expr.getText() === "computed";
+  }
+
+  async function transformCallExpressionComputed(
+    callExpr: CallExpression<ts.CallExpression>
+  ): Promise<boolean> {
+
+    const args = callExpr.getArguments();
+    if (args.length !== 1) return false;
+
+    const argument = args[0];
+    if (!Node.isArrowFunction(argument)) return false;
+
+    const arrow = argument;
+    const body = arrow.getBody();
+    if (!body) return false;
+
+    const key =
+      arrow.getParameters().length > 0
+        ? arrow.getParameters()[0].getName()
+        : TemplateBuild.generateUniqueKey(callExpr.getText());
+
+    /* ---------------------------------------
+     * Variáveis locais e parâmetros
+     * --------------------------------------- */
+    const declaredNames = new Set<string>();
+    arrow.getParameters().forEach(p => declaredNames.add(p.getName()));
+    arrow.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+      .forEach(v => declaredNames.add(v.getName()));
+
+    /* ---------------------------------------
+     * Identifiers usados como VALOR
+     * --------------------------------------- */
+    const identifiers = getUsedVariables(body);
+    // evita substituir a mesma ref duas vezes
+    const replaced = new Set<Identifier>();
 
     for (const id of identifiers) {
       const name = id.getText();
-      const type = id.getType();
-      if ((name === 'filteredResources')) {
-        console.log("Checking identifier:", name, "Type:", type.getText(), "Symbol:", type.getSymbol()?.getName(), ' text: ', id.getText(), 'isComputedCall:');
-      }
-      if (!type || (!isRefType(type) && type.getText() !== 'never')) continue;
-
-      const expr = id.getParentIfKind(SyntaxKind.PropertyAccessExpression);
-      if (!expr) continue;
 
       if (declaredNames.has(name)) continue;
 
-      const defs = id.getDefinitions();
-      const isDefinedOutside = defs.length === 0 || !lambda.containsRange(defs[0].getNode().getPos(), defs[0].getNode().getEnd());
+      const type = id.getType();
+      const isRef = isRefType(type, type.getSymbol());
+      // if (name === "TypeComposer") {
+      //   isRefType(type, type.getSymbol(), undefined, true);
+      // }
 
-      if (!isDefinedOutside) continue;
+      if (!isRef) continue;
+      if (replaced.has(id)) continue;
 
-      const original = expr.getText();
-      toReplace.push({ expr, newText: `${key}.put(${original})` });
-    }
+      // ⛔ nunca substituir o parâmetro do computed
+      if (name === key) continue;
 
-    for (const { expr, newText } of toReplace) {
-      expr.replaceWithText(newText);
-    }
-    if (arrow) {
-      if (arrow.getParameters().length === 0)
-        arrow.addParameter({ name: key });
-      return true;
-    }
-    // const argument = callExpr.getArguments()[0]?.getText() || "";
-
-    const argumentText = argument.getText() || "";
-    const newText = callExpr.getText().replace(argumentText, `(${key}) => { return(${argumentText})(); }`);
-    Debuger.log("computed:replace:", newText);
-    callExpr.replaceWithText(newText);
-    return true;
-  }
-
-  function getFullChain(node: Node): string {
-    const result: string[] = [];
-
-    let current: Node | undefined = node;
-
-    // sobe até o PropertyAccessExpression
-    while (current && !Node.isPropertyAccessExpression(current)) {
-      current = current.getParent();
-    }
-
-    while (current) {
-      if (Node.isPropertyAccessExpression(current)) {
-        result.unshift(current.getName());
-        current = current.getExpression();
+      // ⛔ nunca tocar em declaração
+      const parent = id.getParent();
+      if (
+        Node.isVariableDeclaration(parent) ||
+        Node.isParameterDeclaration(parent)
+      ) {
         continue;
       }
 
-      if (Node.isThisExpression(current)) {
-        result.unshift("this");
-        break;
-      }
+      /* ---------------------------------------
+       * SUBSTITUIÇÃO CORRETA
+       * --------------------------------------- */
+      // substituímos APENAS o identifier base
+      // mantendo .value, .map, etc.
+      id.replaceWithText(`${key}.put(${name})`);
+      replaced.add(id);
+    }
+    const propertyAccesses = body.getDescendantsOfKind(
+      SyntaxKind.PropertyAccessExpression
+    );
+    for (const pa of propertyAccesses) {
+      const expr = pa.getExpression();
+      const name = pa.getName();
 
-      if (Node.isIdentifier(current)) {
-        result.unshift(current.getText());
-        break;
-      }
+      if (!Node.isThisExpression(expr)) continue;
 
-      break;
+      const symbol = pa.getSymbol();
+      const type = pa.getType();
+
+      const isRef = isRefType(type, symbol);
+
+      if (!isRef) continue;
+
+      pa.replaceWithText(`${key}.put(this.${name})`);
     }
 
-    return result.join(".");
+
+    /* ---------------------------------------
+     * Garante parâmetro do computed
+     * --------------------------------------- */
+    if (arrow.getParameters().length === 0) {
+      arrow.addParameter({ name: key });
+    }
+
+    return true;
   }
+
 
   async function transformCallExpressionRefProperty(fileInfo: FileInfo, project: ProjectBuild, callExpr: CallExpression<ts.CallExpression>): Promise<boolean> {
     const classAncestor = callExpr.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);
@@ -234,45 +371,45 @@ export namespace RefBuild {
       if ((tagText !== "computed" && tagText !== "C")) continue;
       if (!isRefType(tag.getType(), tagText === "C" ? tag.getType()?.getSymbol() : undefined)) continue;
 
-      const key = TemplateBuild.generateUniqueKey(expr.getText());
+      // const key = TemplateBuild.generateUniqueKey(expr.getText());
 
       const template = expr.getTemplate();
-      if (!Node.isTemplateExpression(template)) continue;
+      // if (!Node.isTemplateExpression(template)) continue;
 
-      const spans = template.getTemplateSpans();
+      // const spans = template.getTemplateSpans();
 
-      // percorre cada span do template
-      for (const span of spans) {
-        const spanExpr = span.getExpression();
-        if (!spanExpr) continue;
+      // // percorre cada span do template
+      // for (const span of spans) {
+      //   const spanExpr = span.getExpression();
+      //   if (!spanExpr) continue;
 
-        // pega todos os identifiers dentro do span
-        const identifiers = spanExpr.getDescendantsOfKind(SyntaxKind.Identifier);
+      //   // pega todos os identifiers dentro do span
+      //   const identifiers = spanExpr.getDescendantsOfKind(SyntaxKind.Identifier);
 
-        // pega apenas a primeira ref
-        const firstRef = identifiers.find(id => isRefType(id.getType()));
-        if (!firstRef) continue;
+      //   // pega apenas a primeira ref
+      //   const firstRef = identifiers.find(id => isRefType(id.getType()));
+      //   if (!firstRef) continue;
 
-        // pega a cadeia completa da ref (ex: this.opened, this.foo.bar)
-        const fullChain = getFullChain(firstRef);
+      //   // pega a cadeia completa da ref (ex: this.opened, this.foo.bar)
+      //   const fullChain = getFullChain(firstRef);
 
-        // pega o texto atual do span (ex: this.opened.toString())
-        const spanText = spanExpr.getText();
+      //   // pega o texto atual do span (ex: this.opened.toString())
+      //   const spanText = spanExpr.getText();
 
-        // substitui apenas a primeira ref dentro do texto do span
-        Debuger.log("Transforming TaggedTemplateExpression span:", spanText, "->", `${key}.put(${fullChain})`);
-        const newSpanText = spanText.replace(TemplateBuild.getFullRefText(firstRef), `${key}.put(${fullChain})`);
+      //   // substitui apenas a primeira ref dentro do texto do span
+      //   Debuger.log("Transforming TaggedTemplateExpression span:", spanText, "->", `${key}.put(${fullChain})`);
+      //   const newSpanText = spanText.replace(TemplateBuild.getFullRefText(firstRef), `${key}.put(${fullChain})`);
 
-        // substitui o span inteiro de forma segura
-        spanExpr.replaceWithText(newSpanText);
+      //   // substitui o span inteiro de forma segura
+      //   spanExpr.replaceWithText(newSpanText);
 
-        // só transformamos a primeira ref
-        break;
-      }
+      //   // só transformamos a primeira ref
+      //   break;
+      // }
 
       // substitui o tagged template inteiro de forma segura
       const templateText = template.getText(); // já contém _c__tc_.put(...) na primeira ref
-      expr.replaceWithText(`C((${key}) => ${templateText})`);
+      expr.replaceWithText(`TypeComposer.computed(() => ${templateText})`);
     }
   }
 
@@ -314,16 +451,9 @@ export namespace RefBuild {
     return false;
   }
 
-  export function isRefType(type: Type, symbol?: Symbol, types?: RefBuild.REF_TYPES[]): boolean {
-    if (symbol) {
-      const declarations = symbol.getDeclarations();
-      for (const decl of declarations) {
-        const sourceFile = decl.getSourceFile();
-        const filePath = sourceFile.getFilePath();
-        if (/typecomposer[\\/]+typings[\\/]+index\.d\.ts/.test(filePath)) {
-          return true;
-        }
-      }
+  export function isRefType(type: Type, symbol?: Symbol, types?: RefBuild.REF_TYPES[], tes = false): boolean {
+    if (symbol && isComputedSymbol(symbol)) {
+      return true;
     }
     if (type.getText().trim().startsWith("{"))
       return false;
@@ -334,6 +464,7 @@ export namespace RefBuild {
   }
 
   export async function analyze(fileInfo: FileInfo, project: ProjectBuild): Promise<void> {
+    await transformCallExpressionComputedTemplate(fileInfo);
     let callExpressions = fileInfo.sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
     const checked = new Set<CallExpression<ts.CallExpression>>();
     let index = 0;
@@ -359,12 +490,11 @@ export namespace RefBuild {
         await transformCallExpressionRef(fileInfo, project, callExpr);
       } else if (text === "refProperty") {
         await transformCallExpressionRefProperty(fileInfo, project, callExpr);
-      } else if (text === "computed" || text == "TypeComposer.computed") {
+      } else if (isComputedCall(callExpr)) {
         await transformCallExpressionComputed(callExpr);
       }
       callExpressions = fileInfo.sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
       index++;
     }
-    await transformCallExpressionComputedTemplate(fileInfo);
   }
 }

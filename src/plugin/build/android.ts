@@ -26,10 +26,6 @@ export namespace Android {
 			const zip = new AdmZip(apkFilePath);
 			const zipEntries = zip.getEntries();
 			// arquivo encontrado: AndroidManifest.xml
-			const androidManifest = zipEntries.find((zipEntry) => zipEntry.entryName === 'AndroidManifest.xml');
-			if (androidManifest) {
-				//const androidManifestContent = zip.readAsText(androidManifest);
-			}
 			//deixa a a pasta assets limpar dentro do zip
 
 			let assets = zipEntries.filter((zipEntry) => zipEntry.entryName.startsWith('assets/'));
@@ -38,11 +34,8 @@ export namespace Android {
 				zip.deleteFile(zipEntry);
 			}
 
-			assets = zipEntries.filter((zipEntry) => zipEntry.entryName.startsWith('assets/'));
 			//  copiar a pasta dist para dentro do zip com o nome de assets
 			zip.addLocalFolder(distPath, 'assets');
-			for (const zipEntry of assets) {
-			}
 			// Salva as alterações no arquivo APK
 			zip.writeZip(distApkFilePath);
 		}
@@ -70,11 +63,7 @@ export namespace Android {
 			apply: 'build',
 			transformIndexHtml: {
 				order: 'post',
-				handler(html) {
-				},
-				enforce: 'post', // deprecated since Vite 4
-				async transform(html) { // deprecated since Vite 4
-				},
+				handler() {},
 			},
 			configResolved(_config) {
 
