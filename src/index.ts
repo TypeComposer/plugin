@@ -1,9 +1,11 @@
 import { Plugin } from "vite";
 import { ProjectBuild } from "./plugin/transpilator/ProjectBuild";
 import { Debuger } from "./plugin/Debug/Log";
-import { TypeComposer } from "./plugin/transpilator/typecomposer";
-import { TypeComposerBuildPost, TypeComposerBuildPre } from "./plugin/build";
+// import { TypeComposer } from "./plugin/transpilator/typecomposer";
+// import { TypeComposerBuildPost, TypeComposerBuildPre } from "./plugin/build";
 import { TypeComposerProxy } from "./plugin/proxy";
+import { TypeComposerAnalyze } from "./analyze";
+import { TypeComposerVitePlugin } from "./plugin";
 
 type ElementStyle =
   | "button"
@@ -107,10 +109,11 @@ export default function typeComposer(options: Options = { assetsDir: "src/assets
   Debuger.warn("Activate TypeComposer debugger");
   const project = new ProjectBuild(options);
   const plugins: any[] = [
-    TypeComposer.plugin(project),
-    //TypeComposerSVG.plugin(),
-    TypeComposerBuildPre.plugin(project),
-    TypeComposerBuildPost.plugin(project),
+    TypeComposerVitePlugin.plugin(options),
+    // TypeComposer.plugin(project),
+    // //TypeComposerSVG.plugin(),
+    // TypeComposerBuildPre.plugin(project),
+    // TypeComposerBuildPost.plugin(project),
   ];
   if (options.proxy !== false) {
     plugins.push(TypeComposerProxy.plugin(project));

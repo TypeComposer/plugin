@@ -35,11 +35,11 @@ export class InfoComponent {
               const info = {
                 ...(args.length > 2
                   ? JSON.parse(
-                      args[2]
-                        .replace(/,\s*}/g, "}")
-                        .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
-                        .replace(/'/g, '"')
-                    )
+                    args[2]
+                      .replace(/,\s*}/g, "}")
+                      .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+                      .replace(/'/g, '"')
+                  )
                   : {}),
                 tag: args[0].replace(/^['"]|['"]$/g, ""),
               };
@@ -85,6 +85,7 @@ export class InfoComponent {
         .getDecorators()
         ?.filter((decorator: Decorator) => project.isDecoratorTypeComposer(decorator))
         .map((decorator: Decorator) => decorator.getText()) || [];
+    // @ts-ignore
     const classInfo: ClassInfo = {
       className,
       extends: data.extendsName,

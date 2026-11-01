@@ -32,11 +32,14 @@ export interface IComponentInfo extends ElementDefinitionOptions {
 }
 
 export interface ClassInfo {
-  className: string | undefined;
+  className: string;
   extends: string | undefined;
   decorators: string[];
   isComponent: boolean;
+  hasStyle: boolean;
+  hasTemplate: boolean;
   isTemplateLoaded: boolean;
+  hasExtends: boolean;
   elementTag: string | undefined;
   classDeclaration: ClassDeclaration;
   registerOptions: RegisterOptions;
@@ -49,14 +52,20 @@ export interface ClassInfo {
   isExportedStyle: boolean;
   refComponents: { name: string; selectors: string; multiple?: boolean }[];
   parent:
-    | {
-        path: string;
-        className: string;
-      }
-    | undefined;
+  | {
+    path: string;
+    className: string;
+  }
+  | undefined;
 }
 
-export interface FileInfo {
+export type FileInfoType = "script" | "style" | "template";
+
+export interface FileInfoBase {
+  type: FileInfoType;
+}
+
+export interface FileInfoScript extends FileInfoBase {
   path: string;
   sourceFile: SourceFile;
   classes: ClassInfo[];
@@ -68,6 +77,34 @@ export interface FileInfo {
   startDatas: string[];
   endDatas: string[];
 }
+
+export interface FileInfoStyle extends FileInfoBase {
+  path: string;
+  sourceFile: SourceFile;
+  classes: ClassInfo[];
+  templatesUrl: string[];
+  styleCode: string;
+  virtualFile?: string;
+  removeDatas: string[];
+  pathFolder: string;
+  startDatas: string[];
+  endDatas: string[];
+}
+
+export interface FileInfoTemplate extends FileInfoBase {
+  path: string;
+  sourceFile: SourceFile;
+  classes: ClassInfo[];
+  templatesUrl: string[];
+  styleCode: string;
+  virtualFile?: string;
+  removeDatas: string[];
+  pathFolder: string;
+  startDatas: string[];
+  endDatas: string[];
+}
+
+export type FileInfo = FileInfoScript | FileInfoStyle | FileInfoTemplate;
 
 export function printClassInfo(classInfo: ClassInfo) {
   Debuger.log(`============ classInfo: ${classInfo.className} ============`);

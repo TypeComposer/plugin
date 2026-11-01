@@ -1,10 +1,11 @@
 import { ClassDeclaration, Decorator, Project, ScriptKind, SourceFile, Symbol, SyntaxKind, ts, Node } from "ts-morph";
-import path, { join } from "node:path";
+import path, { isAbsolute, join, resolve } from "node:path";
 import { FileInfo, IComponentInfo, ImportInfo } from "./Interfaces";
 import { Options } from "../..";
 import { Debuger } from "../Debug/Log";
-import { readdirSync, statSync, existsSync, readFileSync, utimesSync } from "node:fs";
-import { ViteDevServer } from "vite";
+import { readdirSync, statSync, existsSync, readFileSync, utimesSync, realpathSync } from "node:fs";
+import { ResolvedConfig, ViteDevServer } from "vite";
+import { ProjectContext } from "../../typings";
 
 export class ProjectUtils extends Project {
   public files: Map<string, FileInfo> = new Map<string, FileInfo>();
@@ -31,6 +32,7 @@ export class ProjectUtils extends Project {
   public readonly components = new Map<string, { isStatic: boolean; info: Map<string, IComponentInfo> }>();
   public readonly enabledTemplate: boolean;
   public jsx: ts.JsxEmit;
+  public context!: ProjectContext;
 
   constructor(public options: Options) {
     super({
@@ -298,4 +300,80 @@ export class ProjectUtils extends Project {
     }
     return false;
   }
+
+
+
+
+  findExistingFile(
+    root: string,
+    candidates: string[],
+  ): string | undefined {
+    return candidates
+      .map(file => resolve(root, file))
+      .find(file => existsSync(file));
+  }
+
+  async configResolved(
+    config: ResolvedConfig,
+  ): Promise<ProjectContext> {
+    const rootPath = realpathSync(config.root);
+
+    const isBuilding = config.command === 'build';
+    const isLibMode = Boolean(config.build.lib);
+
+    const indexPath = this.findExistingFile(
+      rootPath,
+      ['index.html'],
+    );
+
+    const mainPath = this.findExistingFile(
+      rootPath,
+      [
+        'src/main.ts',
+        'src/main.tsx',
+        'src/main.js',
+        'src/main.jsx',
+      ],
+    );
+
+    const tsconfigPath = this.findExistingFile(
+      rootPath,
+      [
+        'tsconfig.app.json',
+        'tsconfig.json',
+      ],
+    );
+
+    const outputDir = isAbsolute(config.build.outDir)
+      ? config.build.outDir
+      : resolve(rootPath, config.build.outDir);
+
+    const publicDir = config.publicDir
+      ? resolve(rootPath, config.publicDir)
+      : undefined;
+
+    this.context = {
+      command: config.command,
+      mode: config.mode,
+      isBuilding,
+      isDev: config.command === 'serve',
+      isProduction: config.isProduction,
+      isLibMode,
+
+      rootPath,
+      projectDir: rootPath,
+      indexPath,
+      mainPath,
+      tsconfigPath,
+      outputDir,
+      publicDir,
+
+      cssCodeSplit:
+        config.build.cssCodeSplit ??
+        !isLibMode,
+    };
+    return this.context;
+  }
 }
+
+

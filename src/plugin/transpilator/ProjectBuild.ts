@@ -55,6 +55,7 @@ export class ProjectBuild extends ProjectUtils {
     if (existingSourceFile) this.removeSourceFile(existingSourceFile);
     const sourceFile = await this.normalizeImport(pathName, code, scriptKind);
     const fileInfo: FileInfo = {
+      type: "script",
       sourceFile: sourceFile,
       classes: [],
       removeDatas: [],
@@ -134,4 +135,18 @@ export class ProjectBuild extends ProjectUtils {
     if (pathName && os.platform() == "win32") return pathName.replace(/\\/g, "/");
     return pathName;
   }
+
+
+  putFileInfo(id: string, fileInfo: FileInfo | undefined) {
+    if (fileInfo) {
+      this.files.set(id, fileInfo);
+    } else {
+      this.files.delete(id);
+    }
+  }
+
+  getFileInfo(id: string): FileInfo | undefined {
+    return this.files.get(id);
+  }
+
 }
