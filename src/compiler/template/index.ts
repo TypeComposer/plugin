@@ -1,47 +1,46 @@
-import { utimesSync } from "node:fs";
-import { ProjectBuild } from "../../plugin/transpilator/ProjectBuild";
-import { TypeComposerPluginOptions } from "../../typings";
 import { basename, dirname, extname } from "node:path";
+import { ProjectBuild } from "../../plugin/transpilator/ProjectBuild";
+import { ChangeEvent, FileInfoTemplate, TypeComposerPlugin } from "../../typings";
+import { TypeComposerUtils } from "../../utils";
+import { TemplateAnalyze } from "./analyze";
+import { utimesSync } from "node:fs";
 
+export function TemplatePlugin(project: ProjectBuild): TypeComposerPlugin {
+    const analyzer = new TemplateAnalyze();
 
-export namespace TypeComposerTemplate {
-
-    const files = new Map<string, { path: string; className: string }>();
-
-
-    /**
-     * TypeCompose plugin function for project analysis and transformation during pre-build.
-     * This plugin is responsible for analyzing the project and applying transformations
-     * necessary to ensure that the code is compatible with browsers.
-     *
-     * @param project - Object that represents the project to be built.
-     * @returns A plugin that analyzes and transforms the code during pre-build.
-     */
-    export function plugin(project: ProjectBuild): TypeComposerPluginOptions {
-        return {
-            name: 'typecomposer-template',
-            async watchChange(id, change) {
-                const pathComponent = files.get(id);
-                if (change.event == "delete") {
-                    if (pathComponent) {
-                        files.delete(id);
-                        const now = new Date();
-                        utimesSync(id, now, now);
-                    }
-                } else if (change.event == "create") {
-                    const pathFolder = dirname(id);
-                    const fileName = basename(id, extname(id));
-                    const sourceFiles = project.getFilesInfos(pathFolder).filter((e) => e.classes.length > 0 && e.classes.find((c) => c.className == fileName));
-                    for (const sourceFile of sourceFiles) {
-                        const classInfo = sourceFile.classes.find((e) => e.className == fileName);
-                        if (classInfo) {
-                            files.set(id, { path: sourceFile.path, className: fileName });
-                            const now = new Date();
-                            utimesSync(sourceFile.path, now, now);
-                        }
-                    }
+    return {
+        name: 'typecomposer-template',
+        project,
+        isApplicable: TypeComposerUtils.isTemplateFile,
+        analyze: async (id: string) => {
+            return {
+                id,
+                code: "",
+            } as any;
+        },
+        // @ts-ignore
+        transform: async (id: string, fileInfo: FileInfoTemplate, code: string) => {
+            console.log("Transforming template file:", id);
+            return " ";
+        },
+        buildStart: async () => { },
+        resolveId: async (id: string, importer: string) => {
+            // Implement the resolveId logic here
+            return null; // Return the resolved ID or null if not found
+        },
+        watchChange: async (id: string, change: { event: ChangeEvent }) => {
+            const pathFolder = dirname(id);
+            const fileName = basename(id, extname(id));
+            const sourceFile = project.getFilesInfos(pathFolder).find((e) => e.classes.length > 0 && e.classes.find((c) => c.className == fileName))
+            if (change.event == "delete") {
+                project.deleteTemplate(id);
+            }
+            if (change.event == "delete" || change.event == "create") {
+                if (sourceFile) {
+                    const now = new Date();
+                    utimesSync(sourceFile.path, now, now);
                 }
-            },
+            }
         }
-    }
+    };
 }

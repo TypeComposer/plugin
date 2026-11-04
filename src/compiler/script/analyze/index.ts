@@ -6,9 +6,10 @@ import {
     type ExpressionWithTypeArguments,
     type Symbol as MorphSymbol,
 } from 'ts-morph';
-import { ClassInfo, FileInfoScript } from '../../plugin/transpilator/Interfaces';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
+import { ClassInfo, FileInfoScript } from '../../../typings';
+import { TypeComposerUtils } from '../../../utils';
 
 type ClassNode = ClassDeclaration | ClassExpression;
 type BaseExpression = ExpressionWithTypeArguments;
@@ -62,7 +63,7 @@ export class ScriptAnalyzer {
         return false;
     }
 
-    public analyzeFile(filePath: string): FileInfoScript | undefined {
+    public async analyzeFile(filePath: string): Promise<FileInfoScript | undefined> {
         const sourceFile = this.project.getSourceFile(filePath);
 
         if (!sourceFile) {
@@ -74,7 +75,9 @@ export class ScriptAnalyzer {
             this.analyze(classDeclaration),
         );
 
-        return {
+
+
+        const fileInfo: FileInfoScript = {
             type: "script",
             path: sourceFile.getFilePath(),
             sourceFile,
@@ -87,6 +90,7 @@ export class ScriptAnalyzer {
             styleCode: undefined,
             virtualFile: undefined,
         };
+        return fileInfo;
     }
 
 

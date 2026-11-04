@@ -5,10 +5,11 @@ import { Options } from "../..";
 import { Debuger } from "../Debug/Log";
 import { readdirSync, statSync, existsSync, readFileSync, utimesSync, realpathSync } from "node:fs";
 import { ResolvedConfig, ViteDevServer } from "vite";
-import { ProjectContext } from "../../typings";
+import { ProjectContext, TemplateInfo } from "../../typings";
 
 export class ProjectUtils extends Project {
   public files: Map<string, FileInfo> = new Map<string, FileInfo>();
+  private templateFiles = new Map<String, TemplateInfo>();
   public pathName: string;
   public mainPath: string = "";
   public rootPath: string = "";
@@ -50,6 +51,27 @@ export class ProjectUtils extends Project {
         ?.getFilePath() || "";
     if (this.pathName != "") this.pathName = this.pathName.split("node_modules/typecomposer-plugin/")[0] + "node_modules/typecomposer-plugin/";
     this.stylePath = this.pathName + "public/style.scss";
+  }
+
+
+  deleteTemplate(filePath: string) {
+    this.templateFiles.delete(filePath);
+  }
+
+  getTemplate(filePath: string): TemplateInfo | undefined {
+    const info = this.templateFiles.get(filePath);
+    let timestamp = info ? info.timestamp : 0;
+    let code = info ? info.code : "";
+    if (existsSync(filePath)) {
+      const stat = statSync(filePath);
+      if (stat.mtimeMs > timestamp) {
+        code = readFileSync(filePath, "utf-8");
+        timestamp = stat.mtimeMs;
+      }
+    }
+    const data = { code: code.trim(), className: path.basename(filePath).replace(".template", ""), timestamp };
+    this.templateFiles.set(filePath, data);
+    return data;
   }
 
   validTag(tag: string, file: string): boolean {
@@ -374,6 +396,7 @@ export class ProjectUtils extends Project {
     };
     return this.context;
   }
+
 }
 
 

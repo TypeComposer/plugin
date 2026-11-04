@@ -24,17 +24,14 @@ export namespace TypeComposerVitePlugin {
             enforce: 'pre',
             async configResolved(config) {
                 const context = await plugin.configResolved(config);
-                console.log("TypeComposerAnalyze configResolved:", context);
             },
 
             watchChange(id: string, change: { event: ChangeEvent }) {
                 plugin.watchChange(id, change);
-                console.log("TypeComposerAnalyze watchChange:", id, change);
             },
             configureServer(server: ViteDevServer) {
                 // project.server = server;
                 // server.pluginContainer.resolveId
-                console.log("TypeComposerAnalyze configureServer:");
 
             },
             async buildStart() {
@@ -43,7 +40,6 @@ export namespace TypeComposerVitePlugin {
                 //     return resolved?.id ?? null;
                 // };
                 // await project.buildStart();
-                console.log("TypeComposerAnalyze buildStart");
             },
             transformIndexHtml(html) {
                 return html;
@@ -54,7 +50,6 @@ export namespace TypeComposerVitePlugin {
             },
             async config(config, { command }) {
                 // await project.load_node_modules_dependencys();
-                console.log("TypeComposerAnalyze config:", command);
 
                 return config;
             },
@@ -96,7 +91,7 @@ export namespace TypeComposerVitePlugin {
                     return code;
                 }
                 if (!id.includes("node_modules")) {
-                    return plugin.compile(code, id);
+                    return plugin.compile(id, code);
                 }
             },
             async buildEnd(config) {

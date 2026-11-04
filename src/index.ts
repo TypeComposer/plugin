@@ -1,10 +1,7 @@
 import { Plugin } from "vite";
 import { ProjectBuild } from "./plugin/transpilator/ProjectBuild";
 import { Debuger } from "./plugin/Debug/Log";
-// import { TypeComposer } from "./plugin/transpilator/typecomposer";
-// import { TypeComposerBuildPost, TypeComposerBuildPre } from "./plugin/build";
 import { TypeComposerProxy } from "./plugin/proxy";
-import { TypeComposerAnalyze } from "./analyze";
 import { TypeComposerVitePlugin } from "./plugin";
 
 type ElementStyle =

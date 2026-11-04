@@ -115,7 +115,6 @@ export class InfoComponent {
   public static async analyze(fileInfo: FileInfo, project: ProjectBuild) {
     const sourceFile = fileInfo.sourceFile;
     const classes = sourceFile.getClasses();
-    printFileInfo(fileInfo);
     fileInfo.classes = classes.map((classDeclaration: ClassDeclaration) => {
       return this.getClassInfo(classDeclaration, project);
     });

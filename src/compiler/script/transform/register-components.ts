@@ -1,21 +1,18 @@
-import { Debuger } from "../../plugin/Debug/Log";
-import { ClassInfo, FileInfo } from "../../plugin/transpilator/Interfaces";
-import { ProjectBuild } from "../../plugin/transpilator/ProjectBuild";
-import { ProjectUtils } from "../../plugin/transpilator/ProjectUtils";
+import { Debuger } from "../../../plugin/Debug/Log";
+import { ClassInfo, FileInfo } from "../../../plugin/transpilator/Interfaces";
+import { ProjectBuild } from "../../../plugin/transpilator/ProjectBuild";
+import { ProjectUtils } from "../../../plugin/transpilator/ProjectUtils";
 
-
-export interface RegisterOptions {
-  tag?: string;
-  templateUrl?: string;
-  extends?: string;
-  styleUrl?: string;
-  scoped?: boolean;
-}
 
 export class RegisterComponents {
   private static index: number = 1;
+  private readonly project: ProjectBuild;
 
-  private static converClasNameToTag(file: string, classInfo: ClassInfo, project: ProjectUtils): string {
+  constructor(project: ProjectBuild) {
+    this.project = project;
+  }
+
+  private converClasNameToTag(file: string, classInfo: ClassInfo, project: ProjectUtils): string {
     const className = classInfo.className || "";
     const name = className
       .replace(/([a-z])([A-Z])/g, "$1-$2")
@@ -30,7 +27,7 @@ export class RegisterComponents {
     return tag;
   }
 
-  private static async readRegister(fileInfo: FileInfo, classInfo: ClassInfo, project: ProjectUtils) {
+  private async readRegister(fileInfo: FileInfo, classInfo: ClassInfo, project: ProjectBuild) {
     const decorators = classInfo.classDeclaration.getDecorators();
     const register = decorators.find((e) => e.getName() == "Register" && project.isDecoratorTypeComposer(e));
     const scoped = decorators.find((e) => e.getName() == "scoped" && project.isDecoratorTypeComposer(e));
@@ -55,7 +52,7 @@ export class RegisterComponents {
     scoped?.remove();
   }
 
-  public static async injectTag(fileInfo: FileInfo, classInfo: ClassInfo) {
+  private async injectTag(fileInfo: FileInfo, classInfo: ClassInfo) {
     const tag = classInfo.registerOptions.tag;
     const className = classInfo.className;
     const classDecl = classInfo.classDeclaration;
@@ -77,10 +74,10 @@ export class RegisterComponents {
     fileInfo.sourceFile.insertStatements(classDecl.getChildIndex() + 1, line);
   }
 
-  public static async register(fileInfo: FileInfo, project: ProjectBuild) {
+  public async register(fileInfo: FileInfo) {
     for await (const classInfo of fileInfo.classes) {
       if (classInfo.isComponent) {
-        await this.readRegister(fileInfo, classInfo, project);
+        await this.readRegister(fileInfo, classInfo, this.project);
         console.log(`RegisterComponents: Registering component ${classInfo.className} with tag ${classInfo.registerOptions.tag}`);
         await this.injectTag(fileInfo, classInfo);
       }
