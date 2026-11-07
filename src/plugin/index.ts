@@ -24,6 +24,7 @@ export namespace TypeComposerVitePlugin {
             enforce: 'pre',
             async configResolved(config) {
                 const context = await plugin.configResolved(config);
+                console.log("TypeComposerAnalyze configResolved:", context);
             },
 
             watchChange(id: string, change: { event: ChangeEvent }) {
@@ -35,6 +36,7 @@ export namespace TypeComposerVitePlugin {
 
             },
             async buildStart() {
+                await plugin.buildStart();
                 // project.viteResolve = async (id: string, importer?: string) => {
                 //     const resolved = await this.resolve(id, importer, { skipSelf: true });
                 //     return resolved?.id ?? null;

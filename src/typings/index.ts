@@ -4,7 +4,7 @@ import { ProjectBuild } from '../plugin/transpilator/ProjectBuild';
 import { ClassDeclaration, SourceFile } from 'ts-morph';
 import { Debuger } from '../plugin/Debug/Log';
 
-export type ChangeEvent = "create" | "update" | "delete";
+export type ChangeEvent = "create" | "update" | "delete" | "start";
 
 export interface ProjectContext {
     command: ResolvedConfig['command'];

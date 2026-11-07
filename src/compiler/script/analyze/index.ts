@@ -9,7 +9,8 @@ import {
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { ClassInfo, FileInfoScript } from '../../../typings';
-import { TypeComposerUtils } from '../../../utils';
+import { InjectRouter } from '../transform/inject-router';
+import { ProjectBuild } from '../../../plugin/transpilator/ProjectBuild';
 
 type ClassNode = ClassDeclaration | ClassExpression;
 type BaseExpression = ExpressionWithTypeArguments;
@@ -38,7 +39,7 @@ export class ScriptAnalyzer {
     private readonly dependencyAnalysisInProgress = new WeakSet<ClassNode>();
 
     constructor(
-        private readonly project: Project,
+        private readonly project: ProjectBuild,
         _options: ScriptAnalyzerOptions = {},
     ) { }
 
@@ -46,6 +47,15 @@ export class ScriptAnalyzer {
         return this.toPublicResult(this.analyzeNode(classDeclaration));
     }
 
+    async buildStart() {
+        console.log('ScriptAnalyzer buildStart: Searching for router files...');
+        console.log(`Project directory: ${this.project.projectDir}`);
+        const routers = await InjectRouter.findRouterTsFiles(this.project.projectDir);
+        if (routers.length > 0) {
+            this.project.routerPath = routers[0];
+            console.log(`Router file found: ${this.project.routerPath}`);
+        }
+    }
 
     private hasTemplate(pathFolder: string, componentName: string): boolean {
         const templatePath = join(pathFolder, componentName + ".template");

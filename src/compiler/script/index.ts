@@ -12,14 +12,16 @@ export function ScriptPlugin(project: ProjectBuild): TypeComposerPlugin {
         name: "typecomposer-script",
         project,
         isApplicable: TypeComposerUtils.isScriptFile,
+
         analyze: analyzer.analyzeFile.bind(analyzer),
         transform: transform.transformFileInfo.bind(transform),
         resolveId: async (id: string, importer: string) => { },
         buildStart: async () => {
-            // Implement the buildStart logic here
+            await analyzer.buildStart();
+            await transform.buildStart();
         },
         watchChange: async (id: string, change: { event: ChangeEvent }) => {
-            // Implement the watchChange logic here
+            await transform.watchChange(id, change);
         }
     };
 }

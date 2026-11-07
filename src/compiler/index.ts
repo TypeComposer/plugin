@@ -1,9 +1,10 @@
+import { join, resolve } from "node:path";
 import { Options } from "..";
-import { ChangeEvent, FileInfo } from "../plugin/transpilator/Interfaces";
 import { ProjectBuild } from "../plugin/transpilator/ProjectBuild";
-import { TypeComposeCompilerOptions } from "../typings";
+import { ChangeEvent, FileInfo, TypeComposeCompilerOptions } from "../typings";
 import { ScriptPlugin } from "./script";
 import { TemplatePlugin } from "./template";
+import { existsSync } from "node:fs";
 
 
 
@@ -45,10 +46,33 @@ export namespace TypeComposeCompiler {
                 }
             },
             buildStart: async () => {
-                // Implement the buildStart logic here
+                for (const plugin of plugins) {
+                    await plugin.buildStart();
+                }
             },
             configResolved: async (config: any) => {
-                // Implement the configResolved logic here
+                project.isBuilding = config.command === "build";
+                project.isLibMode = !!config.build.lib;
+                project.cssCodeSplit = config.build.cssCodeSplit ?? false;
+                project.rootPath = config.root;
+                project.projectDir = join(config.root, 'src');
+                project.indexPath = join(config.root, 'index.html');
+                project.mainPath = join(config.root, 'src', 'main.ts');
+                project.tsconfigPath = resolve(config.root, 'tsconfig.json');
+                if (!existsSync(project.mainPath)) {
+                    project.mainPath = join(config.root, 'src', 'main.js');
+                }
+                project.outputDir = join(config.root, 'dist');
+                project.typecomposerDir = join(config.root, "node_modules", "typecomposer");
+                project.nodeModulesDir = join(config.root, "node_modules");
+                //if (project.assetsDir && project.isAssetsValid) {
+                //    Asstes.listFiles(project.assetsDir, project.assetsDir);
+                //}
+                //Asstes.build(project.typecomposerDir);
+                if (project.isLibMode && config.command === "build") {
+                    config.build.rollupOptions ??= {};
+                    config.build.rollupOptions.external = config.build.rollupOptions.external || ['typecomposer'];
+                }
             },
             configureServer: async (server: any) => {
                 // Implement the configureServer logic here

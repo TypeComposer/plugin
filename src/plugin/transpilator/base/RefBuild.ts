@@ -110,65 +110,6 @@ export namespace RefBuild {
     return false;
   }
 
-  // function isComputedRef(id: Identifier | PropertyAccessExpression<ts.PropertyAccessExpression>): boolean {
-  //   if (id instanceof PropertyAccessExpression) {
-  //     const expr = id.getExpression();
-  //     if (Node.isIdentifier(expr) && expr.getText() === "computed") {
-  //       return true;
-  //     }
-  //     if (Node.isPropertyAccessExpression(expr) && expr.getName() === "computed") {
-  //       return true;
-  //     }
-  //     return false;
-  //   }
-  //   const defs = id.getDefinitions();
-
-  //   for (const def of defs) {
-  //     const decl = def.getDeclarationNode();
-  //     if (!decl) continue;
-
-  //     let initializer: Node | undefined;
-
-  //     // class property
-  //     if (Node.isPropertyDeclaration(decl)) {
-  //       initializer = decl.getInitializer();
-  //     }
-
-  //     // variável local / const / let
-  //     else if (Node.isVariableDeclaration(decl)) {
-  //       initializer = decl.getInitializer();
-  //     }
-
-  //     // parâmetro com default (raro, mas possível)
-  //     else if (Node.isParameterDeclaration(decl)) {
-  //       initializer = decl.getInitializer();
-  //     }
-
-  //     if (!initializer) continue;
-
-  //     // precisa ser call expression
-  //     if (!Node.isCallExpression(initializer)) continue;
-
-  //     const expr = initializer.getExpression();
-
-  //     // computed(...)
-  //     if (Node.isIdentifier(expr) && expr.getText() === "computed") {
-  //       return true;
-  //     }
-
-  //     // TypeComposer.computed(...)
-  //     if (
-  //       Node.isPropertyAccessExpression(expr) &&
-  //       expr.getName() === "computed"
-  //     ) {
-  //       return true;
-  //     }
-  //   }
-
-  //   return false;
-  // }
-
-
   function getUsedVariables(body: Node): Identifier[] {
     const identifiers = body.getDescendantsOfKind(SyntaxKind.Identifier);
 
