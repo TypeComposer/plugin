@@ -32,6 +32,15 @@ export type FileCache = {
     [key: string]: any;
 };
 
+export type REF_TYPES =
+    "RefString" |
+    "RefNumber" |
+    "RefBoolean" |
+    "RefList" |
+    "RefSet" |
+    "RefMap" |
+    "RefState" |
+    "RefObject"
 
 export type TypeComposerPlugin = {
     name: string;
