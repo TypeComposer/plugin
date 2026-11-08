@@ -1,7 +1,7 @@
 import { Debuger } from "../../../plugin/Debug/Log";
 import { ClassInfo, FileInfo } from "../../../plugin/transpilator/Interfaces";
-import { ProjectBuild } from "../../../plugin/transpilator/ProjectBuild";
-import { ProjectUtils } from "../../../plugin/transpilator/ProjectUtils";
+import { ProjectBuild } from "../../base/ProjectBuild";
+
 
 
 export class RegisterComponents {
@@ -12,7 +12,7 @@ export class RegisterComponents {
     this.project = project;
   }
 
-  private converClasNameToTag(file: string, classInfo: ClassInfo, project: ProjectUtils): string {
+  private converClasNameToTag(file: string, classInfo: ClassInfo, project: ProjectBuild): string {
     const className = classInfo.className || "";
     const name = className
       .replace(/([a-z])([A-Z])/g, "$1-$2")
@@ -78,7 +78,6 @@ export class RegisterComponents {
     for await (const classInfo of fileInfo.classes) {
       if (classInfo.isComponent) {
         await this.readRegister(fileInfo, classInfo, this.project);
-        console.log(`RegisterComponents: Registering component ${classInfo.className} with tag ${classInfo.registerOptions.tag}`);
         await this.injectTag(fileInfo, classInfo);
       }
     }

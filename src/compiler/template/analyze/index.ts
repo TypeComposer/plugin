@@ -7,6 +7,8 @@ import { Debuger } from "../../../plugin/Debug/Log";
 
 export class TemplateAnalyze {
 
+
+
   private normalizeCode(code: string) {
     let newCode = "";
     const imports: string[] = [];
@@ -192,4 +194,6 @@ export class TemplateAnalyze {
       }
     }
   }
+
+
 }

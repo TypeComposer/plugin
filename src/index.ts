@@ -1,8 +1,8 @@
 import { Plugin } from "vite";
-import { ProjectBuild } from "./plugin/transpilator/ProjectBuild";
 import { Debuger } from "./plugin/Debug/Log";
 import { TypeComposerProxy } from "./plugin/proxy";
 import { TypeComposerVitePlugin } from "./plugin";
+import { ProjectBuild } from "./compiler/base/ProjectBuild";
 
 type ElementStyle =
   | "button"

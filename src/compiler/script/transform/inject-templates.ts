@@ -1,6 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { ClassInfo, FileInfo } from "../../../plugin/transpilator/Interfaces";
-import { ProjectBuild } from "../../../plugin/transpilator/ProjectBuild";
+import { ProjectBuild } from "../../base/ProjectBuild";
+
 
 
 export class InjectTemplates {

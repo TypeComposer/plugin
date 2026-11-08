@@ -1,10 +1,10 @@
 import { ClassDeclaration, JsxAttribute, JsxOpeningElement, JsxSelfClosingElement, SyntaxKind, Node, JsxExpression, ts, CallExpression, Expression, Identifier } from "ts-morph";
 
 import { TransformStream } from "./transform";
-import { ProjectBuild } from "../../plugin/transpilator/ProjectBuild";
 import { RefBuild } from "../../plugin/transpilator/base/RefBuild";
 import { Debuger } from "../../plugin/Debug/Log";
 import { FileInfo, FileInfoTemplate } from "../../typings";
+import { ProjectBuild } from "../base/ProjectBuild";
 
 export interface RefComponentOptions {
   ref: string;

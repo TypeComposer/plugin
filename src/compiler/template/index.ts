@@ -1,9 +1,9 @@
 import { basename, dirname, extname } from "node:path";
-import { ProjectBuild } from "../../plugin/transpilator/ProjectBuild";
 import { ChangeEvent, FileInfoTemplate, TypeComposerPlugin } from "../../typings";
 import { TypeComposerUtils } from "../../utils";
 import { TemplateAnalyze } from "./analyze";
 import { utimesSync } from "node:fs";
+import { ProjectBuild } from "../base/ProjectBuild";
 
 export function TemplatePlugin(project: ProjectBuild): TypeComposerPlugin {
     const analyzer = new TemplateAnalyze();

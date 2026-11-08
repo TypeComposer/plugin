@@ -1,10 +1,11 @@
 import { join, resolve } from "node:path";
 import { Options } from "..";
-import { ProjectBuild } from "../plugin/transpilator/ProjectBuild";
 import { ChangeEvent, FileInfo, TypeComposeCompilerOptions } from "../typings";
 import { ScriptPlugin } from "./script";
 import { TemplatePlugin } from "./template";
 import { existsSync } from "node:fs";
+import { ProjectBuild } from "./base/ProjectBuild";
+import { StyletPlugin } from "./style";
 
 
 
@@ -15,7 +16,8 @@ export namespace TypeComposeCompiler {
         const project: ProjectBuild = new ProjectBuild(options);
         const plugins = [
             ScriptPlugin(project),
-            TemplatePlugin(project)
+            TemplatePlugin(project),
+            StyletPlugin(project)
         ];
 
 

@@ -1,7 +1,7 @@
 import { FileInfo, ClassInfo } from "../Interfaces";
 import { Debuger } from "../../Debug/Log";
 import { StyleBuild } from "./StyleBuild";
-import { ProjectUtils } from "../ProjectUtils";
+import { ProjectUtils } from "../../../compiler/base/ProjectUtils";
 
 export interface RegisterOptions {
   tag?: string;

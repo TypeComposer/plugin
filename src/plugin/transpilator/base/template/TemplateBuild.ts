@@ -2,11 +2,11 @@ import { ClassDeclaration, JsxAttribute, JsxOpeningElement, JsxSelfClosingElemen
 import { utimesSync } from "node:fs";
 import { basename, dirname, extname } from "node:path";
 import { FileInfo, ChangeEvent } from "../../Interfaces";
-import { ProjectBuild } from "../../ProjectBuild";
 import { Debuger } from "../../../Debug/Log";
 import { RefBuild } from "../RefBuild";
 import { TransformStream } from "./transform";
 import { TemplateLoad } from "./TemplateLoad";
+import { ProjectBuild } from "../../../../compiler/base/ProjectBuild";
 
 export interface RefComponentOptions {
   ref: string;

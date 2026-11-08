@@ -1,8 +1,8 @@
 import type { Plugin } from 'vite';
-import { ProjectBuild } from '../transpilator/ProjectBuild';
 import path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { Debuger } from '../Debug/Log';
+import { ProjectBuild } from '../../compiler/base/ProjectBuild';
 
 type ProxyConfig = {
     target: string;

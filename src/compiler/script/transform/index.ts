@@ -1,4 +1,3 @@
-import { ProjectBuild } from "../../../plugin/transpilator/ProjectBuild";
 import { ChangeEvent, FileInfoScript } from "../../../typings";
 import { RegisterComponents } from "./register-components";
 import { InjectTemplates } from "./inject-templates";
@@ -6,6 +5,8 @@ import { TransformTsx } from "./transform-tsx";
 import { ComponentTransformer } from "./transform-component";
 import { TransformService } from "./transform-service";
 import { InjectRouter } from "./inject-router";
+import { ProjectBuild } from "../../base/ProjectBuild";
+import { InjectStyle } from "./inject-style";
 
 
 
@@ -16,6 +17,7 @@ export class ScriptTransform {
     private readonly transformTsx: TransformTsx;
     private readonly componentTransformer: ComponentTransformer;
     private readonly injectRouter: InjectRouter;
+    private readonly injectStyle: InjectStyle;
 
 
     constructor(readonly project: ProjectBuild) {
@@ -24,6 +26,7 @@ export class ScriptTransform {
         this.transformTsx = new TransformTsx(project);
         this.componentTransformer = new ComponentTransformer();
         this.injectRouter = new InjectRouter(project);
+        this.injectStyle = new InjectStyle(project);
     }
 
     public async buildStart() { }
@@ -33,6 +36,7 @@ export class ScriptTransform {
         await this.injectTemplates.inject(fileInfo);
         await this.injectRouter.transform(fileInfo);
         await this.componentTransformer.transformer(fileInfo);
+        await this.injectStyle.inject(fileInfo);
         await TransformService.transform(fileInfo, this.project);
         await this.transformTsx.transform(fileInfo);
         return fileInfo.sourceFile.getFullText();

@@ -1,8 +1,8 @@
 
 import type { ResolvedConfig } from 'vite';
-import { ProjectBuild } from '../plugin/transpilator/ProjectBuild';
 import { ClassDeclaration, SourceFile } from 'ts-morph';
 import { Debuger } from '../plugin/Debug/Log';
+import { ProjectBuild } from '../compiler/base/ProjectBuild';
 
 export type ChangeEvent = "create" | "update" | "delete" | "start";
 
@@ -24,11 +24,14 @@ export interface ProjectContext {
     cssCodeSplit: boolean;
 }
 
-export type TemplateInfo = {
+export type FileCache = {
     code: string;
     className: string;
     timestamp: number;
+    link?: string;
+    [key: string]: any;
 };
+
 
 export type TypeComposerPlugin = {
     name: string;

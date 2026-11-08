@@ -1,8 +1,8 @@
 import { existsSync, utimesSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path";
-import { ChangeEvent, ClassInfo, FileInfo } from "../Interfaces";
-import { ProjectBuild } from "../ProjectBuild";
 import { Debuger } from "../../Debug/Log";
+import { ChangeEvent, ClassInfo, FileInfo } from "../../../typings";
+import { ProjectBuild } from "../../../compiler/base/ProjectBuild";
 
 export interface StyleComponentFile { path: string; tag: string | undefined; className: string }
 
@@ -89,9 +89,9 @@ export class StyleBuild {
       const pathFolder = dirname(id);
       const fileName = basename(id, extname(id));
 
-      const sourceFiles = project.getFilesInfos(pathFolder).filter((e) => e.classes.length > 0 && e.classes.find((c) => c.className == fileName));
+      const sourceFiles = project.getFilesInfos(pathFolder).filter((e) => e.classes.length > 0 && e.classes.find((c: any) => c.className == fileName));
       for (const sourceFile of sourceFiles) {
-        const classInfo = sourceFile.classes.find((e) => e.className == fileName);
+        const classInfo = sourceFile.classes.find((e: any) => e.className == fileName);
         if (classInfo) {
           StyleBuild.files.set(id, { path: sourceFile.path, tag: classInfo.registerOptions.tag, className: fileName });
           const now = new Date();

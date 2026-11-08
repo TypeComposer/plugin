@@ -1,6 +1,6 @@
 import { GetAccessorDeclaration, MethodDeclaration, PropertyDeclaration, SetAccessorDeclaration } from "ts-morph";
 import { FileInfo } from "../../../typings";
-import { ProjectBuild } from "../../../plugin/transpilator/ProjectBuild";
+import { ProjectBuild } from "../../base/ProjectBuild";
 
 export namespace TransformService {
 

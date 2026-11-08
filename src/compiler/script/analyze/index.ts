@@ -1,6 +1,5 @@
 import {
     Node,
-    Project,
     type ClassDeclaration,
     type ClassExpression,
     type ExpressionWithTypeArguments,
@@ -10,7 +9,7 @@ import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { ClassInfo, FileInfoScript } from '../../../typings';
 import { InjectRouter } from '../transform/inject-router';
-import { ProjectBuild } from '../../../plugin/transpilator/ProjectBuild';
+import { ProjectBuild } from '../../base/ProjectBuild';
 
 type ClassNode = ClassDeclaration | ClassExpression;
 type BaseExpression = ExpressionWithTypeArguments;
@@ -48,12 +47,9 @@ export class ScriptAnalyzer {
     }
 
     async buildStart() {
-        console.log('ScriptAnalyzer buildStart: Searching for router files...');
-        console.log(`Project directory: ${this.project.projectDir}`);
         const routers = await InjectRouter.findRouterTsFiles(this.project.projectDir);
         if (routers.length > 0) {
             this.project.routerPath = routers[0];
-            console.log(`Router file found: ${this.project.routerPath}`);
         }
     }
 

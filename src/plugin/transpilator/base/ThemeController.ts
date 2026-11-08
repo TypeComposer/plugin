@@ -1,8 +1,8 @@
 
 import path, { basename } from 'node:path';
 import { readdirSync, statSync } from 'node:fs';
-import { ChangeEvent, FileTheme } from '../Interfaces';
-import { ProjectBuild } from '../ProjectBuild';
+import { ChangeEvent, FileTheme } from '../../../typings';
+import { ProjectBuild } from '../../../compiler/base/ProjectBuild';
 
 
 export namespace Theme {

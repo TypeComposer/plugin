@@ -1,7 +1,7 @@
 import path, { basename } from "node:path";
 import { readdirSync, statSync } from "node:fs";
-import { ChangeEvent, FileInfo } from "../Interfaces";
-import { ProjectBuild } from "../ProjectBuild";
+import { ProjectBuild } from "../../../compiler/base/ProjectBuild";
+import { ChangeEvent, FileInfo } from "../../../typings";
 
 export namespace Router {
   export function isRouterFile(file: string): boolean {

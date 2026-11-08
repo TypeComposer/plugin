@@ -1,4 +1,4 @@
-import { ProjectBuild } from "../../../plugin/transpilator/ProjectBuild";
+import { ProjectBuild } from "../../base/ProjectBuild";
 import { TransformStream } from "../../../plugin/transpilator/base/template/transform";
 
 

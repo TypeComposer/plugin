@@ -1,9 +1,9 @@
 import { FileInfo } from "../Interfaces";
 import { CallExpression, Identifier, SourceFile, SyntaxKind, ts, Symbol, Node } from "ts-morph";
-import { ProjectBuild } from "../ProjectBuild";
 import { Type } from "ts-morph";
 import { resolve } from "node:path";
 import { TemplateBuild } from "./template/TemplateBuild";
+import { ProjectBuild } from "../../../compiler/base/ProjectBuild";
 
 export namespace RefBuild {
 

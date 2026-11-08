@@ -1,6 +1,6 @@
-import { ProjectBuild } from "../../plugin/transpilator/ProjectBuild";
 import { TypeComposerPlugin, ChangeEvent } from "../../typings";
 import { TypeComposerUtils } from "../../utils";
+import { ProjectBuild } from "../base/ProjectBuild";
 import { ScriptAnalyzer } from "./analyze";
 import { ScriptTransform } from "./transform";
 

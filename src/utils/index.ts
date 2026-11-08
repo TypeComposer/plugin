@@ -21,6 +21,8 @@ export namespace TypeComposerUtils {
         return extension === 'css' || extension === 'scss' || extension === 'sass' || extension === 'less';
     }
 
+    export const STYLE_EXTENSIONS = ['css', 'scss', 'sass', 'less'];
+
     /**
         * Checks if a file is a template file.
         * @param filePath - The path to the file.

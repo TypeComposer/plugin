@@ -1,7 +1,7 @@
 import path, { basename } from "node:path";
 import { readdirSync, statSync } from "node:fs";
 import { ChangeEvent, FileInfo } from "../../../typings";
-import { ProjectBuild } from "../../../plugin/transpilator/ProjectBuild";
+import { ProjectBuild } from "../../base/ProjectBuild";
 import { Router } from "../../../plugin/transpilator/base/RouterController";
 
 export class InjectRouter {
@@ -38,7 +38,6 @@ export class InjectRouter {
   async watchChange(id: string, change: { event: ChangeEvent }) {
     if (this.project.options.router === "manual") return;
     if ((id.endsWith(".ts") || id.endsWith(".js")) && InjectRouter.isRouterFile(basename(id))) {
-      console.log(`Router file change detected: ${id}, event: ${change.event}`);
       if (change.event == "update") return;
       if (change.event == "delete") {
         this.project.routerPath = "";
@@ -66,7 +65,6 @@ export class InjectRouter {
   public async transform(fileInfo: FileInfo) {
     if (this.project.options.router === "manual" || !this.project.routerPath) return;
     const mainPath = this.project.mainPath;
-    console.log(`Injecting router import into main file: ${mainPath} // Router path: ${this.project.routerPath}`);
     if (fileInfo.path === mainPath) {
       fileInfo.sourceFile.addStatements(`import "${this.project.routerPath}";`);
     }

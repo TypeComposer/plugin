@@ -1,15 +1,15 @@
 import { ClassDeclaration, Decorator, Project, ScriptKind, SourceFile, Symbol, SyntaxKind, ts, Node } from "ts-morph";
 import path, { isAbsolute, join, resolve } from "node:path";
-import { FileInfo, IComponentInfo, ImportInfo } from "./Interfaces";
 import { Options } from "../..";
-import { Debuger } from "../Debug/Log";
 import { readdirSync, statSync, existsSync, readFileSync, utimesSync, realpathSync } from "node:fs";
 import { ResolvedConfig, ViteDevServer } from "vite";
-import { ProjectContext, TemplateInfo } from "../../typings";
+import { FileCache, FileInfo, IComponentInfo, ProjectContext } from "../../typings";
+import { Debuger } from "../../plugin/Debug/Log";
 
 export class ProjectUtils extends Project {
   public files: Map<string, FileInfo> = new Map<string, FileInfo>();
-  private templateFiles = new Map<String, TemplateInfo>();
+  private templateFiles = new Map<String, FileCache>();
+  private styleFiles = new Map<String, FileCache>();
   public pathName: string;
   public mainPath: string = "";
   public rootPath: string = "";
@@ -58,7 +58,7 @@ export class ProjectUtils extends Project {
     this.templateFiles.delete(filePath);
   }
 
-  getTemplate(filePath: string): TemplateInfo | undefined {
+  getTemplate(filePath: string): FileCache | undefined {
     const info = this.templateFiles.get(filePath);
     let timestamp = info ? info.timestamp : 0;
     let code = info ? info.code : "";
@@ -72,6 +72,18 @@ export class ProjectUtils extends Project {
     const data = { code: code.trim(), className: path.basename(filePath).replace(".template", ""), timestamp };
     this.templateFiles.set(filePath, data);
     return data;
+  }
+
+  deleteStyle(filePath: string) {
+    this.styleFiles.delete(filePath);
+  }
+
+  getStyle(filePath: string): FileCache | undefined {
+    return this.styleFiles.get(filePath) || { code: "", className: "", timestamp: 0 };
+  }
+
+  putStyle(filePath: string, data: FileCache) {
+    this.styleFiles.set(filePath, data);
   }
 
   validTag(tag: string, file: string): boolean {
@@ -202,42 +214,42 @@ export class ProjectUtils extends Project {
     return decl.getSourceFile();
   }
 
-  public async getImportInfo(sourceFile: SourceFile): Promise<ImportInfo[]> {
-    const imports: ImportInfo[] = [];
-    for await (const imp of sourceFile.getImportDeclarations()) {
-      const moduleSpecifier: string = (await this.viteResolve(imp.getModuleSpecifierValue(), sourceFile.getFilePath())) || imp.getModuleSpecifierValue();
+  // public async getImportInfo(sourceFile: SourceFile): Promise<ImportInfo[]> {
+  //   const imports: ImportInfo[] = [];
+  //   for await (const imp of sourceFile.getImportDeclarations()) {
+  //     const moduleSpecifier: string = (await this.viteResolve(imp.getModuleSpecifierValue(), sourceFile.getFilePath())) || imp.getModuleSpecifierValue();
 
-      for await (const named of imp.getNamedImports()) {
-        const nameNode = named.getNameNode();
-        const symbol = nameNode.getSymbol()?.getAliasedSymbol() ?? nameNode.getSymbol();
-        if (!symbol) continue;
-        const decl = symbol.getDeclarations()[0];
-        imports.push({
-          moduleSpecifier: moduleSpecifier,
-          namedImport: named.getText(),
-          symbol: symbol,
-          moduleSourcePath: decl?.getSourceFile().getFilePath() || "",
-          isDefaultImport: imp.getDefaultImport() != undefined,
-        });
-      }
+  //     for await (const named of imp.getNamedImports()) {
+  //       const nameNode = named.getNameNode();
+  //       const symbol = nameNode.getSymbol()?.getAliasedSymbol() ?? nameNode.getSymbol();
+  //       if (!symbol) continue;
+  //       const decl = symbol.getDeclarations()[0];
+  //       imports.push({
+  //         moduleSpecifier: moduleSpecifier,
+  //         namedImport: named.getText(),
+  //         symbol: symbol,
+  //         moduleSourcePath: decl?.getSourceFile().getFilePath() || "",
+  //         isDefaultImport: imp.getDefaultImport() != undefined,
+  //       });
+  //     }
 
-      const ns = imp.getNamespaceImport();
-      if (ns) {
-        imports.push({
-          moduleSpecifier: moduleSpecifier,
-          namedImport: ns.getText(),
-          moduleSourcePath: "",
-          namespaceImport: ns.getText(),
-          symbol: ns.getSymbol(),
-          isDefaultImport: false,
-        });
-      }
-    }
-    for (const imp of imports) {
-      if (imp.moduleSourcePath.includes("?v=")) imp.moduleSourcePath = imp.moduleSourcePath.split("?v=")[0];
-    }
-    return imports;
-  }
+  //     const ns = imp.getNamespaceImport();
+  //     if (ns) {
+  //       imports.push({
+  //         moduleSpecifier: moduleSpecifier,
+  //         namedImport: ns.getText(),
+  //         moduleSourcePath: "",
+  //         namespaceImport: ns.getText(),
+  //         symbol: ns.getSymbol(),
+  //         isDefaultImport: false,
+  //       });
+  //     }
+  //   }
+  //   for (const imp of imports) {
+  //     if (imp.moduleSourcePath.includes("?v=")) imp.moduleSourcePath = imp.moduleSourcePath.split("?v=")[0];
+  //   }
+  //   return imports;
+  // }
 
   public isClassFromModule(classDeclaration: ClassDeclaration, moduleName: string): boolean {
     const sourceFile = classDeclaration.getSourceFile();
