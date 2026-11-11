@@ -1,9 +1,8 @@
 import { ClassDeclaration, Decorator, Project, ScriptKind, SourceFile, Symbol, SyntaxKind, ts, Node } from "ts-morph";
 import path, { isAbsolute, join, resolve } from "node:path";
-import { Options } from "../..";
 import { readdirSync, statSync, existsSync, readFileSync, utimesSync, realpathSync } from "node:fs";
 import { ResolvedConfig, ViteDevServer } from "vite";
-import { FileCache, FileInfo, IComponentInfo, ProjectContext } from "../../typings";
+import { FileCache, FileInfo, IComponentInfo, Options, ProjectContext, TranslationOption } from "../../typings";
 import { Debuger } from "../../plugin/Debug/Log";
 
 export class ProjectUtils extends Project {
@@ -407,6 +406,19 @@ export class ProjectUtils extends Project {
         !isLibMode,
     };
     return this.context;
+  }
+
+
+  public getTranslationOption(): TranslationOption | undefined {
+    if (!this.options.translation) return undefined;
+    if (!this.options.translation.translationPath) { this.options.translation.translationPath = path.join(this.rootPath, "src", "translations"); }
+    return this.options.translation;
+  }
+
+  public isMainFile(fileInfo: FileInfo): boolean {
+    const mainPath = this.mainPath;
+    if (!mainPath) return false;
+    return fileInfo.path === mainPath;
   }
 
 }

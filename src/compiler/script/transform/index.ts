@@ -8,6 +8,7 @@ import { InjectRouter } from "./inject-router";
 import { ProjectBuild } from "../../base/ProjectBuild";
 import { InjectStyle } from "./inject-style";
 import { TransformRef } from "./transform-ref";
+import { TransformTranslations } from "./transform-translation";
 
 
 
@@ -20,6 +21,7 @@ export class ScriptTransform {
     private readonly injectRouter: InjectRouter;
     private readonly injectStyle: InjectStyle;
     private readonly transformRef: TransformRef;
+    private readonly transformTranslations: TransformTranslations;
 
 
     constructor(readonly project: ProjectBuild) {
@@ -30,9 +32,12 @@ export class ScriptTransform {
         this.injectRouter = new InjectRouter(project);
         this.injectStyle = new InjectStyle(project);
         this.transformRef = new TransformRef(project);
+        this.transformTranslations = new TransformTranslations(project);
     }
 
-    public async buildStart() { }
+    public async buildStart() {
+        await this.transformTranslations.buildStart();
+    }
 
     public async transformFileInfo(_id: string, fileInfo: FileInfoScript, _code: string): Promise<string | null | undefined> {
         await this.registerComponents.register(fileInfo);
@@ -43,6 +48,7 @@ export class ScriptTransform {
         await TransformService.transform(fileInfo, this.project);
         await this.transformTsx.transform(fileInfo);
         await this.transformRef.transform(fileInfo);
+        await this.transformTranslations.transform(fileInfo);
         return fileInfo.sourceFile.getFullText();
     }
 

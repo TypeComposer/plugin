@@ -17,6 +17,7 @@ export function ScriptPlugin(project: ProjectBuild): TypeComposerPlugin {
         transform: transform.transformFileInfo.bind(transform),
         resolveId: async (id: string, importer: string) => { },
         buildStart: async () => {
+            console.log("ScriptPlugin buildStart");
             await analyzer.buildStart();
             await transform.buildStart();
         },

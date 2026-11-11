@@ -1,11 +1,10 @@
 import { statSync, existsSync } from "node:fs";
 import path from "node:path";
-import { Options } from "../..";
 import * as os from "os";
 import { ProjectUtils } from "./ProjectUtils";
 import { Router } from "../../plugin/transpilator/base/RouterController";
 import { Theme } from "../../plugin/transpilator/base/ThemeController";
-import { ClassInfo, FileInfo } from "../../typings";
+import { ClassInfo, FileInfo, Options } from "../../typings";
 
 export class ProjectBuild extends ProjectUtils {
   constructor(public options: Options) {
@@ -32,13 +31,14 @@ export class ProjectBuild extends ProjectUtils {
       this.routerPath = routers[0];
     }
     Theme.findFiles(this.projectDir);
-    if (this.options?.translation && this.options?.translation?.defaultLanguage) {
-      if (this.options.translation?.folder?.includes("src/")) {
-        this.options.translation.folder = this.options.translation.folder.split("src/")[1];
-      }
-      this.options.translation["folder"] = path.join(this.rootPath, "src", this.options.translation?.folder || "translation");
-      this.translationPath = this.options.translation["folder"];
-    }
+    // translation here
+    // if (this.options?.translation && this.options?.translation?.defaulLocale) {
+    //   if (this.options.translation?.folder?.includes("src/")) {
+    //     this.options.translation.folder = this.options.translation.folder.split("src/")[1];
+    //   }
+    //   this.options.translation["folder"] = path.join(this.rootPath, "src", this.options.translation?.folder || "translation");
+    //   this.translationPath = this.options.translation["folder"];
+    // }
   }
 
   // public async analyze(pathName: string, code: string, scriptKind: ScriptKind, tpc: any): Promise<string> {

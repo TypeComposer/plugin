@@ -1,7 +1,6 @@
 
 import type { ResolvedConfig } from 'vite';
 import { ClassDeclaration, SourceFile } from 'ts-morph';
-import { Debuger } from '../plugin/Debug/Log';
 import { ProjectBuild } from '../compiler/base/ProjectBuild';
 
 export type ChangeEvent = "create" | "update" | "delete" | "start";
@@ -207,28 +206,96 @@ export interface FileInfoTemplate extends FileInfoBase {
 
 export type FileInfo = FileInfoScript | FileInfoStyle | FileInfoTemplate;
 
-export function printClassInfo(classInfo: ClassInfo) {
-    Debuger.log(`============ classInfo: ${classInfo.className} ============`);
-    Debuger.log("extends: ", classInfo.extends);
-    Debuger.log("decorators: ", classInfo.decorators);
-    //Debuger.log('imports: ', classInfo.imports);
-    Debuger.log("isComponent: ", classInfo.isComponent);
-    Debuger.log("constructorDatas: ", classInfo.constructorDatas);
-    Debuger.log("styles: ", classInfo.styles);
-    Debuger.log("parent: ", classInfo.parent);
-    Debuger.log("refComponents: ", classInfo.refComponents);
-    Debuger.log("registerOptions: ", classInfo.registerOptions);
-}
 
-export function printFileInfo(fileInfo: FileInfo) {
-    if (fileInfo.classes.length == 0) return;
-    Debuger.log("============ fileInfo ============");
-    Debuger.log("path: ", fileInfo.path);
-    Debuger.log("templatesUrl: ", fileInfo.templatesUrl);
-    Debuger.log("styleCode: ", fileInfo.styleCode);
-    Debuger.log("virtualFile: ", fileInfo.virtualFile);
-    Debuger.log("removeDatas: ", fileInfo.removeDatas);
-    Debuger.log("startDatas: ", fileInfo.startDatas);
-    Debuger.log("endDatas: ", fileInfo.endDatas);
-    //Debuger.log('imports: ', fileInfo.imports);
+
+
+export type ElementStyle =
+    | "button"
+    | "div"
+    | "span"
+    | "input"
+    | "a"
+    | "label"
+    | "select"
+    | "textarea"
+    | "form"
+    | "img"
+    | "header"
+    | "footer"
+    | "nav"
+    | "section"
+    | "article"
+    | "aside"
+    | "main"
+    | "figure"
+    | "figcaption"
+    | "table"
+    | "thead"
+    | "tbody"
+    | "tr"
+    | "td"
+    | "th"
+    | "ul"
+    | "ol"
+    | "li"
+    | "dl"
+    | "dt"
+    | "dd"
+    | "p"
+    | "h1"
+    | "h2"
+    | "h3"
+    | "h4"
+    | "h5"
+    | "h6";
+
+export type TranslationOption = {
+    defaulLocale: string;
+    Locales: string[];
+    translationPath?: string;
+};
+
+export interface Options {
+    // pwa?: TypeComposerPWA.PWDOptions;
+    debugger?: boolean;
+    library?: boolean;
+    router?: "auto" | "manual";
+    translation?: TranslationOption;
+    /**
+     * assetsDir: assets directory
+     * to disable assetsDir is neseariol pass undefined
+     * @default 'src/assets'
+     * */
+    assetsDir?: string | undefined;
+    serviceWorker?: "auto" | string;
+    otimize?: boolean;
+    /**
+     * svgBuild: build svg
+     * @default true
+     */
+    svgBuild?: boolean;
+    /**
+     * SSR support
+     * @default false
+     */
+    ssr?: boolean;
+    /**
+     * Enable HMR (Hot Module Replacement)
+     * @default false
+     */
+    metaHot?: boolean;
+    /**
+     * Enable API proxying
+     * @default true
+     */
+    proxy?: boolean;
+    /**
+     * Styles configuration
+     */
+    styles?:
+    | {
+        exclude?: ElementStyle[] | "all";
+        include?: ElementStyle[] | "all";
+    }
+    | false;
 }

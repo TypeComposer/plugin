@@ -64,8 +64,7 @@ export class InjectRouter {
 
   public async transform(fileInfo: FileInfo) {
     if (this.project.options.router === "manual" || !this.project.routerPath) return;
-    const mainPath = this.project.mainPath;
-    if (fileInfo.path === mainPath) {
+    if (this.project.isMainFile(fileInfo)) {
       fileInfo.sourceFile.addStatements(`import "${this.project.routerPath}";`);
     }
   }

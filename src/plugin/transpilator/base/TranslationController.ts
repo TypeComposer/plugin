@@ -1,6 +1,6 @@
 import path from "node:path";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { ProjectBuild } from "../ProjectBuild";
+import { ProjectBuild } from "../../../compiler/base/ProjectBuild";
 
 export namespace TranslationController {
   function extractKeys(value: string): string[] {
@@ -47,7 +47,7 @@ export namespace TranslationController {
   function generateJsContent(json: any, jsonData: any, lan: string, isComputed: boolean): string {
     const transformedData = transformValue(json, "", isComputed);
     return `
-        const defaultLanguage = "${lan || "en"}";
+        const defaulLocale = "${lan || "en"}";
         const data = ${JSON.stringify(jsonData, null, 2)};
         const Translation = {
         ${transformedData}
@@ -91,7 +91,7 @@ export namespace TranslationController {
     const { json, jsonData } = await loadJsonFile(defaultLang, files);
     let jsContent = "const Translation = {};globalThis.Translation = Translation;";
     try {
-      const lan = project.options.translation?.defaultLanguage || "en";
+      const lan = project.options.translation?.defaulLocale || "en";
       const isComputed = project.options.translation?.computed || false;
       const dtsFilePath = path.join(project.typecomposerDir, "translation/index.d.ts");
 
@@ -111,7 +111,7 @@ export namespace TranslationController {
             }
             function translation(path, params = {}) {
                 const paths = path.split(".");
-                const defaultValues = data[defaultLanguage];
+                const defaultValues = data[defaulLocale];
                 const value = data[App.language.value];
 
                 let defaultItem = defaultValues;
@@ -149,7 +149,7 @@ export namespace TranslationController {
       return "";
     }
     const absolutePath = project.translationPath;
-    const defaultLang = project.options.translation?.defaultLanguage || "";
+    const defaultLang = project.options.translation?.defaulLocale || "";
     let files: string[] = [];
     if (defaultLang && project.options.translation && existsSync(absolutePath) && statSync(absolutePath).isDirectory()) {
       files = listFiles(absolutePath);
