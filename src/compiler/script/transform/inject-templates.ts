@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
-import { ClassInfo, FileInfo } from "../../../plugin/transpilator/Interfaces";
 import { ProjectBuild } from "../../base/ProjectBuild";
+import { FileInfo, ClassInfo } from "../../../typings";
 
 
 

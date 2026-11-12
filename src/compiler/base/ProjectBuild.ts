@@ -2,9 +2,10 @@ import { statSync, existsSync } from "node:fs";
 import path from "node:path";
 import * as os from "os";
 import { ProjectUtils } from "./ProjectUtils";
-import { Router } from "../../plugin/transpilator/base/RouterController";
-import { Theme } from "../../plugin/transpilator/base/ThemeController";
+// import { Theme } from "../../plugin/transpilator/base/ThemeController";
 import { ClassInfo, FileInfo, Options } from "../../typings";
+import { TypeComposerUtils } from "../../utils";
+import { ThemeAnalysis } from "../style/analyze/theme-analysis";
 
 export class ProjectBuild extends ProjectUtils {
   constructor(public options: Options) {
@@ -26,11 +27,11 @@ export class ProjectBuild extends ProjectUtils {
   }
 
   async buildStart() {
-    const routers = await Router.findRouterTsFiles(this.projectDir);
+    const routers = await TypeComposerUtils.findRouterTsFiles(this.projectDir);
     if (routers.length > 0) {
       this.routerPath = routers[0];
     }
-    Theme.findFiles(this.projectDir);
+    ThemeAnalysis.findFiles(this.projectDir);
     // translation here
     // if (this.options?.translation && this.options?.translation?.defaulLocale) {
     //   if (this.options.translation?.folder?.includes("src/")) {

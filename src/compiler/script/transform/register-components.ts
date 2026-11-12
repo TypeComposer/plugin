@@ -1,5 +1,5 @@
 import { Debuger } from "../../../plugin/Debug/Log";
-import { ClassInfo, FileInfo } from "../../../plugin/transpilator/Interfaces";
+import { ClassInfo, FileInfo } from "../../../typings";
 import { ProjectBuild } from "../../base/ProjectBuild";
 
 
@@ -29,11 +29,11 @@ export class RegisterComponents {
 
   private async readRegister(fileInfo: FileInfo, classInfo: ClassInfo, project: ProjectBuild) {
     const decorators = classInfo.classDeclaration.getDecorators();
-    const register = decorators.find((e) => e.getName() == "Register" && project.isDecoratorTypeComposer(e));
-    const scoped = decorators.find((e) => e.getName() == "scoped" && project.isDecoratorTypeComposer(e));
+    const register = decorators.find((e: any) => e.getName() == "Register" && project.isDecoratorTypeComposer(e));
+    const scoped = decorators.find((e: any) => e.getName() == "scoped" && project.isDecoratorTypeComposer(e));
     const registerArgs = register
       ?.getArguments()
-      .map((arg) => arg.getText().replace(/,(?=\s*})/, ""))
+      .map((arg: any) => arg.getText().replace(/,(?=\s*})/, ""))
       .join(", ")
       .replace(/(\w+):/g, '"$1":')
       .replace(/'/g, '"');

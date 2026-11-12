@@ -59,14 +59,14 @@ export namespace TransformStream {
     }
 
     let propsCode = "{}";
-    if (spreads.length === 0 && kv.length === 0) propsCode ;
+    if (spreads.length === 0 && kv.length === 0) propsCode;
     else if (spreads.length === 0) propsCode = `{ ${kv.join(", ")} }`;
     else {
       const parts = ["{}"].concat(spreads).concat(kv.length ? [`{ ${kv.join(", ")} }`] : []);
       propsCode = `Object.assign(${parts.join(", ")})`;
     }
     if (isRoot) {
-      propsCode = propsCode.replace("{", "{ [TypeComposer.parentComponentSymbol]: this" + (kv.length || spreads.length ? ", " : "") );
+      propsCode = propsCode.replace("{", "{ [TypeComposer.parentComponentSymbol]: this" + (kv.length || spreads.length ? ", " : ""));
     }
     return { propsCode, spreads };
   }
@@ -263,7 +263,7 @@ export namespace TransformStream {
     const root = jsxRoots[0];
     if (Node.isJsxElement(root))
       return jsxElementToCreateElement(root, true);
-    if (Node.isJsxSelfClosingElement(root)) 
+    if (Node.isJsxSelfClosingElement(root))
       return jsxSelfClosingToCreateElement(root, true);
     if (Node.isJsxFragment(root)) {
       const args = jsxChildrenToArgs(getFragmentJsxChildren(root));

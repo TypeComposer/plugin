@@ -1,7 +1,6 @@
 import { Plugin, ViteDevServer, } from 'vite';
-import { ChangeEvent } from '../plugin/transpilator/Interfaces';
 import { TypeComposeCompiler } from '../compiler';
-import { Options } from '../typings';
+import { ChangeEvent, Options } from '../typings';
 
 
 export namespace TypeComposerVitePlugin {

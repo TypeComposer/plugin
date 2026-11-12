@@ -1,12 +1,16 @@
 import { basename, dirname, extname } from 'node:path';
 import { ChangeEvent } from '../../../typings';
 import { ProjectBuild } from '../../base/ProjectBuild';
+import { ThemeAnalysis } from './theme-analysis';
 
 
 export class StyleAnalyzer {
 
+    private themeAnalysis: ThemeAnalysis;
 
-    constructor(private readonly project: ProjectBuild) { }
+    constructor(private readonly project: ProjectBuild) {
+        this.themeAnalysis = new ThemeAnalysis();
+    }
 
 
     async watchChange(id: string, change: { event: ChangeEvent }) {
@@ -24,6 +28,7 @@ export class StyleAnalyzer {
             //     utimesSync(sourceFile.path, now, now);
             // }
         }
+        await this.themeAnalysis.watchChange(id, change, this.project);
     }
 
 

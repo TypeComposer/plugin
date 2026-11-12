@@ -1,3 +1,5 @@
+import { readdirSync, statSync } from "node:fs";
+import path from "node:path";
 
 
 export namespace TypeComposerUtils {
@@ -22,6 +24,8 @@ export namespace TypeComposerUtils {
     }
 
     export const STYLE_EXTENSIONS = ['css', 'scss', 'sass', 'less'];
+
+    export const TEMPLATE_EXTENSIONS = ['template', 'tpl'];
 
     /**
         * Checks if a file is a template file.
@@ -52,6 +56,29 @@ export namespace TypeComposerUtils {
             }
             return value;
         }, 2));
+    }
+
+    export function isRouterFile(file: string): boolean {
+        return file === "router.ts" || file === "router.js" || file === "Router.js" || file === "Router.ts";
+    }
+
+
+    export async function findRouterTsFiles(directory: string): Promise<string[]> {
+        const routerTsFiles: string[] = [];
+        function searchRecursively(dir: string) {
+            const files = readdirSync(dir);
+            files.forEach((file: string) => {
+                const filePath = path.join(dir, file);
+                const isDirectory = statSync(filePath).isDirectory();
+                if (isDirectory) {
+                    searchRecursively(filePath);
+                } else if (isRouterFile(file)) {
+                    routerTsFiles.push(filePath);
+                }
+            });
+        }
+        searchRecursively(directory);
+        return routerTsFiles;
     }
 
 }

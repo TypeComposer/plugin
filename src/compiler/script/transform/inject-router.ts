@@ -2,7 +2,7 @@ import path, { basename } from "node:path";
 import { readdirSync, statSync } from "node:fs";
 import { ChangeEvent, FileInfo } from "../../../typings";
 import { ProjectBuild } from "../../base/ProjectBuild";
-import { Router } from "../../../plugin/transpilator/base/RouterController";
+// import { Router } from "../../../plugin/transpilator/base/RouterController";
 
 export class InjectRouter {
 
@@ -53,14 +53,14 @@ export class InjectRouter {
     }
   }
 
-  async inject(fileInfo: FileInfo) {
-    if (this.project.options.router === "manual") return;
-    const pathName = fileInfo.path;
-    const fileName = path.basename(pathName).toLocaleLowerCase();
-    if (InjectRouter.isRouterFile(fileName)) {
-      Router.watchChange(pathName, { event: "update" }, this.project);
-    }
-  }
+  // async inject(fileInfo: FileInfo) {
+  //   if (this.project.options.router === "manual") return;
+  //   const pathName = fileInfo.path;
+  //   const fileName = path.basename(pathName).toLocaleLowerCase();
+  //   if (InjectRouter.isRouterFile(fileName)) {
+  //     Router.watchChange(pathName, { event: "update" }, this.project);
+  //   }
+  // }
 
   public async transform(fileInfo: FileInfo) {
     if (this.project.options.router === "manual" || !this.project.routerPath) return;

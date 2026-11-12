@@ -22,7 +22,7 @@ export default function typeComposer(options: Options = {
   // const { pwa } = options;
   Debuger.isDebug = options.debugger || false;
   Debuger.warn("Activate TypeComposer debugger");
-  const project = new ProjectBuild(options);
+  // const project = new ProjectBuild(options);
   const plugins: any[] = [
     TypeComposerVitePlugin.plugin(options),
     // TypeComposer.plugin(project),
@@ -30,9 +30,9 @@ export default function typeComposer(options: Options = {
     // TypeComposerBuildPre.plugin(project),
     // TypeComposerBuildPost.plugin(project),
   ];
-  if (options.proxy !== false) {
-    plugins.push(TypeComposerProxy.plugin(project));
-  }
+  // if (options.proxy !== false) {
+  //   plugins.push(TypeComposerProxy.plugin(project));
+  // }
   // if (pwa) {
   //     Debuger.log('activate pwa build');
   //     // @ts-ignore

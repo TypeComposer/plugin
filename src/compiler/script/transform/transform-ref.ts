@@ -155,7 +155,7 @@ export class TransformRef {
     });
   }
 
-  private isComputedSymbol(symbol: Symbol | undefined): boolean {
+  private static isComputedSymbol(symbol: Symbol | undefined): boolean {
     if (!symbol) return false;
 
     return symbol.getDeclarations()?.some(decl => {
@@ -171,7 +171,7 @@ export class TransformRef {
     }) ?? false;
   }
 
-  private isComputedInitializer(node: Node | undefined): boolean {
+  private static isComputedInitializer(node: Node | undefined): boolean {
     if (!node || !Node.isCallExpression(node)) return false;
 
     const expr = node.getExpression();
@@ -227,7 +227,7 @@ export class TransformRef {
       if (declaredNames.has(name)) continue;
 
       const type = id.getType();
-      const isRef = this.isRefType(type, type.getSymbol());
+      const isRef = TransformRef.isRefType(type, type.getSymbol());
       // if (name === "TypeComposer") {
       //   isRefType(type, type.getSymbol(), undefined, true);
       // }
@@ -267,7 +267,7 @@ export class TransformRef {
       const symbol = pa.getSymbol();
       const type = pa.getType();
 
-      const isRef = this.isRefType(type, symbol);
+      const isRef = TransformRef.isRefType(type, symbol);
 
       if (!isRef) continue;
 
@@ -311,7 +311,7 @@ export class TransformRef {
 
       // filtra apenas templates marcados como `computed` ou `C` que sejam refs
       if ((tagText !== "computed" && tagText !== "C")) continue;
-      if (!this.isRefType(tag.getType(), tagText === "C" ? tag.getType()?.getSymbol() : undefined)) continue;
+      if (!TransformRef.isRefType(tag.getType(), tagText === "C" ? tag.getType()?.getSymbol() : undefined)) continue;
 
       // const key = TemplateBuild.generateUniqueKey(expr.getText());
 
@@ -393,7 +393,7 @@ export class TransformRef {
     return false;
   }
 
-  private isRefType(type: Type, symbol?: Symbol, types?: REF_TYPES[], tes = false): boolean {
+  static isRefType(type: Type, symbol?: Symbol, types?: REF_TYPES[], tes = false): boolean {
     if (symbol && this.isComputedSymbol(symbol)) {
       return true;
     }
@@ -423,7 +423,7 @@ export class TransformRef {
       }
       checked.add(callExpr);
       const text = expression.getText();
-      if (text !== "TypeComposer.computed" && !this.isRefType(expression.getType(), expression.getSymbol())) {
+      if (text !== "TypeComposer.computed" && !TransformRef.isRefType(expression.getType(), expression.getSymbol())) {
         index++;
         continue;
       }

@@ -1,12 +1,11 @@
 import { ProjectBuild } from "../../base/ProjectBuild";
-import { TransformStream } from "../../../plugin/transpilator/base/template/transform";
-
-
+import { TransformStream } from "../../../utils/transform-stream";
 
 import { ClassDeclaration, JsxAttribute, JsxOpeningElement, JsxSelfClosingElement, SyntaxKind, Node, JsxExpression, ts, CallExpression, Expression, Identifier } from "ts-morph";
 import { FileInfo } from "../../../typings";
-import { RefBuild } from "../../../plugin/transpilator/base/RefBuild";
+// import { RefBuild } from "../../../plugin/transpilator/base/RefBuild";
 import { Debuger } from "../../../plugin/Debug/Log";
+import { TransformRef } from "./transform-ref";
 
 
 
@@ -104,12 +103,12 @@ export class TransformTsx {
   isSimpleRefExpression(expr: Expression): boolean {
     if (Node.isPropertyAccessExpression(expr)) {
       const type = expr.getType();
-      return RefBuild.isRefType(type, undefined);
+      return TransformRef.isRefType(type, undefined);
     }
 
     if (Node.isIdentifier(expr)) {
       const type = expr.getType();
-      return RefBuild.isRefType(type, undefined);
+      return TransformRef.isRefType(type, undefined);
     }
 
     return false;
@@ -156,7 +155,7 @@ export class TransformTsx {
         const identifiers = expression.getDescendantsOfKind(SyntaxKind.Identifier);
         for (const id of identifiers) {
           const type = id.getType();
-          if (RefBuild.isRefType(type, undefined)) {
+          if (TransformRef.isRefType(type, undefined)) {
             refs.add(this.getFullRefText(id));
           }
         }
@@ -224,7 +223,8 @@ export class TransformTsx {
               return false;
             }
 
-            return RefBuild.isRefType(
+
+            return TransformRef.isRefType(
               node.getType(),
               node.getSymbol()
             );
