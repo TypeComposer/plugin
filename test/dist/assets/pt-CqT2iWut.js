@@ -1,0 +1,1 @@
+var e=`Olá {name}!`,t=`Esta é uma tradução de teste com um número: {count}`,n={hello_name:e,this_is_a_test_translation_with_a_number_count:t};export{n as default,e as hello_name,t as this_is_a_test_translation_with_a_number_count};

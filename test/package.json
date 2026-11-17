@@ -1,0 +1,32 @@
+{
+  "name": "test",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "vite",
+    "dev": "npm run clean && vite",
+    "test": "vitest --ui",
+    "clean": "rm -rf node_modules/.vite  && rm -rf node_modules/.vite-temp && clear && vite",
+    "build": "vite build",
+    "build-ssr": "vite build && vite build --ssr src/entry-server.ts",
+    "serve": "node server",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^4.2.1",
+    "typecomposer": "^0.1.63",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "@types/node": "^26.6.5",
+    "csstype": "^3.2.3",
+    "sass": "^1.105.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
+}

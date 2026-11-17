@@ -1,0 +1,4 @@
+{
+    "hello_name": "Olá {name}!",
+    "this_is_a_test_translation_with_a_number_count": "Esta é uma tradução de teste com um número: {count}"
+}

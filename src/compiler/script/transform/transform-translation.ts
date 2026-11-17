@@ -15,7 +15,7 @@ type TranslationData = Record<string, string>;
 export class TransformTranslations {
   private translationFilesCache: Record<string, TranslationData> = {};
 
-  constructor(readonly project: ProjectBuild) {}
+  constructor(readonly project: ProjectBuild) { }
 
   private getLocales(translationOption: TranslationOption): string[] {
     return Array.from(new Set([
@@ -167,6 +167,8 @@ export class TransformTranslations {
   private generateTranslationKey(text: string): string {
     return text.toLowerCase().replace(/\s+/g, '_').replace(/[^\w_]/g, '');
   }
+
+
 
   private insertTranslationLocales(fileInfo: FileInfo, translationOption: TranslationOption): void {
     const locales = this.getLocales(translationOption);

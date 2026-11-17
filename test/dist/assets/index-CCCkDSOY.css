@@ -1,0 +1,1 @@
+[tc-style~=app-page] h1{color:#ff0!important}[tc-style~=text-field].disabled .aria-Input,[tc-style~=text-field].disabled .aria-TextArea{border-color:var(--border-color-disabled);color:var(--text-color-disabled);background-color:var(--field-background-disabled);cursor:not-allowed}

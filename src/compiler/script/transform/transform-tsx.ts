@@ -181,11 +181,27 @@ export class TransformTsx {
       }
     }
 
+    const outermostTransformations = transformations.filter((transformation) => {
+      const start = transformation.node.getStart();
+      const end = transformation.node.getEnd();
+      return !transformations.some((other) => {
+        if (other === transformation) return false;
+        return other.node.getStart() <= start && other.node.getEnd() >= end;
+      });
+    });
+
     const transformationsKeyAttrs: TransformationsType[] = [];
 
-    for (const { node, newText, args } of transformations) {
-      const newNode = node.replaceWithText(newText);
-      this.transformAtributtesKey(newNode, args[0], transformationsKeyAttrs);
+    for (const { node, newText, args } of outermostTransformations) {
+      const wasForgotten = (node as any).wasForgotten ? (node as any).wasForgotten() : false;
+      if (wasForgotten) continue;
+
+      try {
+        const newNode = node.replaceWithText(newText);
+        this.transformAtributtesKey(newNode, args[0], transformationsKeyAttrs);
+      } catch (error) {
+        Debuger.error("Unable to transform JSX expression:", error);
+      }
     }
   }
 
@@ -275,7 +291,6 @@ export class TransformTsx {
         }
       } else {
         const newCode = TransformStream.convertTsxToTypeComposer(html);
-        console.log("TransformTsx convertTemplate:", newCode);
         templateCallback?.insertStatements(0, newCode ? `return (${newCode});` : html);
       }
     }

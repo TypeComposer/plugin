@@ -64,7 +64,8 @@
     "esbuild": "^0.28.2",
     "htmlparser2": "^10.0.0",
     "tsup": "^9.0.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "typecomposer-plugin": "file:.."
   },
   "dependencies": {
     "es-module-lexer": "^1.7.0",
