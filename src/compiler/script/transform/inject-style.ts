@@ -42,6 +42,9 @@ export class InjectStyle {
 
 
   public async inject(fileInfo: FileInfo) {
+    if (this.project.isMainFile(fileInfo)) {
+      fileInfo.sourceFile.insertStatements(0, `import "typecomposer/theme.css";`);
+    }
     const types = TypeComposerUtils.STYLE_EXTENSIONS;
     for await (const classInfo of fileInfo.classes) {
       const componentName = classInfo.className;
