@@ -1,8 +1,37 @@
 import { Debuger } from "../../../plugin/Debug/Log";
-import { ClassInfo, FileInfo } from "../../../typings";
+import { ClassInfo, FileInfo, RegisterOptions } from "../../../typings";
 import { ProjectBuild } from "../../base/ProjectBuild";
 
 
+const nativeElements: Record<string, string> = {
+  HTMLButtonElement: "button",
+  HTMLAnchorElement: "a",
+  HTMLInputElement: "input",
+  HTMLSelectElement: "select",
+  HTMLTextAreaElement: "textarea",
+  HTMLImageElement: "img",
+  HTMLFormElement: "form",
+  HTMLLabelElement: "label",
+  HTMLUListElement: "ul",
+  HTMLOListElement: "ol",
+  HTMLLIElement: "li",
+  HTMLTableElement: "table",
+  HTMLTableRowElement: "tr",
+  HTMLTableCellElement: "td",
+  HTMLTableSectionElement: "tbody",
+  HTMLParagraphElement: "p",
+  HTMLHeadingElement: "h1",
+  HTMLDivElement: "div",
+  HTMLSpanElement: "span",
+  HTMLQuoteElement: "blockquote",
+  HTMLTimeElement: "time",
+  HTMLProgressElement: "progress",
+  HTMLMeterElement: "meter",
+  HTMLDetailsElement: "details",
+  HTMLDialogElement: "dialog",
+  HTMLFieldSetElement: "fieldset",
+  HTMLOutputElement: "output",
+};
 
 export class RegisterComponents {
   private static index: number = 1;
@@ -52,6 +81,11 @@ export class RegisterComponents {
     scoped?.remove();
   }
 
+  private normalizeExtends(registerOptions: RegisterOptions): string | undefined {
+    const extendsValue = nativeElements[registerOptions.extends || ""];
+    return (extendsValue && ("HTMLElement" !== extendsValue)) ? ',{ extends: "' + extendsValue + '" }' : ""
+  }
+
   private async injectTag(fileInfo: FileInfo, classInfo: ClassInfo) {
     const tag = classInfo.registerOptions.tag;
     const className = classInfo.className;
@@ -60,8 +94,8 @@ export class RegisterComponents {
       Debuger.error(`Class ${className} not found in file ${fileInfo.path}`);
       return;
     }
-    const registerExtends = classInfo.registerOptions?.extends || "";
-    const line = `\TypeComposer.defineElement(${className}.TAG, ${className}${(registerExtends && ("HTMLElement" !== registerExtends)) ? ',{ extends: "' + classInfo.registerOptions.extends + '" }' : ""});\n`;
+    // const registerExtends = this.normalizeExtends(classInfo.registerOptions);
+    const line = `\TypeComposer.defineElement(${className}.TAG, ${className}${this.normalizeExtends(classInfo.registerOptions)});\n`;
 
     if (!classDecl.getStaticMember("NEW_TAG")) {
       classDecl.addProperty({
