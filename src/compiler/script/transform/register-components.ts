@@ -94,7 +94,6 @@ export class RegisterComponents {
       Debuger.error(`Class ${className} not found in file ${fileInfo.path}`);
       return;
     }
-    // const registerExtends = this.normalizeExtends(classInfo.registerOptions);
     const line = `\TypeComposer.defineElement(${className}.TAG, ${className}${this.normalizeExtends(classInfo.registerOptions)});\n`;
 
     if (!classDecl.getStaticMember("NEW_TAG")) {
